@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, filedialog
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
 from simplex import SimplexSolver  # Import SimplexSolver from simplex.py
 from bigM import BigMSolver  # Import BigMSolver from bigM.py
 import numpy as np
@@ -10,8 +12,14 @@ class LPApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Linear Programming Solver")
-        self.root.geometry("800x600")
+        self.root.geometry("1000x700")
+        self.style = ttk.Style(theme="cosmo")  # Use a modern theme (e.g., "cosmo", "minty", "flatly")
 
+        # Main container
+        self.main_frame = ttk.Frame(self.root)
+        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+
+        # Method selection
         self.method_var = tk.StringVar(value="simplex")
         self.problem_type_var = tk.StringVar(value="max")
         self.num_vars = tk.IntVar(value=2)
@@ -20,34 +28,38 @@ class LPApp:
         self.create_widgets()
 
     def create_widgets(self):
+        # Input section
+        input_frame = ttk.Labelframe(self.main_frame, text="Input Parameters", padding=10)
+        input_frame.pack(fill=tk.X, padx=10, pady=10)
+
         # Method selection
-        tk.Label(self.root, text="Select Method:").grid(row=0, column=0, padx=10, pady=10)
-        tk.Radiobutton(self.root, text="Simplex", variable=self.method_var, value="simplex").grid(row=0, column=1, padx=10, pady=10)
-        tk.Radiobutton(self.root, text="Big M", variable=self.method_var, value="bigm").grid(row=0, column=2, padx=10, pady=10)
+        ttk.Label(input_frame, text="Select Method:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        ttk.Radiobutton(input_frame, text="Simplex", variable=self.method_var, value="simplex", bootstyle="info").grid(row=0, column=1, padx=10, pady=10, sticky="w")
+        ttk.Radiobutton(input_frame, text="Big M", variable=self.method_var, value="bigm", bootstyle="info").grid(row=0, column=2, padx=10, pady=10, sticky="w")
 
         # Problem type selection
-        tk.Label(self.root, text="Problem Type:").grid(row=1, column=0, padx=10, pady=10)
-        tk.Radiobutton(self.root, text="Maximization", variable=self.problem_type_var, value="max").grid(row=1, column=1, padx=10, pady=10)
-        tk.Radiobutton(self.root, text="Minimization", variable=self.problem_type_var, value="min").grid(row=1, column=2, padx=10, pady=10)
+        ttk.Label(input_frame, text="Problem Type:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+        ttk.Radiobutton(input_frame, text="Maximization", variable=self.problem_type_var, value="max", bootstyle="info").grid(row=1, column=1, padx=10, pady=10, sticky="w")
+        ttk.Radiobutton(input_frame, text="Minimization", variable=self.problem_type_var, value="min", bootstyle="info").grid(row=1, column=2, padx=10, pady=10, sticky="w")
 
         # Number of variables and constraints
-        tk.Label(self.root, text="Number of Variables:").grid(row=2, column=0, padx=10, pady=10)
-        self.num_vars_entry = tk.Entry(self.root, textvariable=self.num_vars)
-        self.num_vars_entry.grid(row=2, column=1, padx=10, pady=10)
+        ttk.Label(input_frame, text="Number of Variables:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
+        self.num_vars_entry = ttk.Entry(input_frame, textvariable=self.num_vars, width=10, bootstyle="primary")
+        self.num_vars_entry.grid(row=2, column=1, padx=10, pady=10, sticky="w")
 
-        tk.Label(self.root, text="Number of Constraints:").grid(row=3, column=0, padx=10, pady=10)
-        self.num_constraints_entry = tk.Entry(self.root, textvariable=self.num_constraints)
-        self.num_constraints_entry.grid(row=3, column=1, padx=10, pady=10)
+        ttk.Label(input_frame, text="Number of Constraints:").grid(row=3, column=0, padx=10, pady=10, sticky="w")
+        self.num_constraints_entry = ttk.Entry(input_frame, textvariable=self.num_constraints, width=10, bootstyle="primary")
+        self.num_constraints_entry.grid(row=3, column=1, padx=10, pady=10, sticky="w")
 
         # Button to update input fields
-        tk.Button(self.root, text="Update Input Fields", command=self.update_input_fields).grid(row=4, column=0, columnspan=3, padx=10, pady=10)
+        ttk.Button(input_frame, text="Update Input Fields", command=self.update_input_fields, bootstyle="success").grid(row=4, column=0, columnspan=3, padx=10, pady=10)
 
         # Input fields for coefficients
-        self.coeff_frame = tk.Frame(self.root)
-        self.coeff_frame.grid(row=5, column=0, columnspan=3, padx=10, pady=10)
+        self.coeff_frame = ttk.Labelframe(self.main_frame, text="Coefficients", padding=10)
+        self.coeff_frame.pack(fill=tk.X, padx=10, pady=10)
 
         # Solve button
-        tk.Button(self.root, text="Solve", command=self.solve).grid(row=6, column=0, columnspan=3, padx=10, pady=10)
+        ttk.Button(self.main_frame, text="Solve", command=self.solve, bootstyle="primary").pack(pady=10)
 
         # Initialize input fields
         self.update_input_fields()
@@ -61,11 +73,11 @@ class LPApp:
         num_constraints = self.num_constraints.get()
 
         # Objective function coefficients
-        tk.Label(self.coeff_frame, text="Objective Function Coefficients:").grid(row=0, column=0, padx=10, pady=10)
+        ttk.Label(self.coeff_frame, text="Objective Function Coefficients:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
         self.obj_coeff_entries = []
         for i in range(num_vars):
-            entry = tk.Entry(self.coeff_frame, width=10)
-            entry.grid(row=0, column=i+1, padx=5, pady=5)
+            entry = ttk.Entry(self.coeff_frame, width=10, bootstyle="primary")
+            entry.grid(row=0, column=i+1, padx=5, pady=5, sticky="w")
             self.obj_coeff_entries.append(entry)
 
         # Constraint coefficients
@@ -73,22 +85,22 @@ class LPApp:
         self.rhs_entries = []
         self.constraint_type_vars = []
         for i in range(num_constraints):
-            tk.Label(self.coeff_frame, text=f"Constraint {i+1}:").grid(row=i+1, column=0, padx=10, pady=10)
+            ttk.Label(self.coeff_frame, text=f"Constraint {i+1}:").grid(row=i+1, column=0, padx=10, pady=10, sticky="w")
             constraint_entries_row = []
             for j in range(num_vars):
-                entry = tk.Entry(self.coeff_frame, width=10)
-                entry.grid(row=i+1, column=j+1, padx=5, pady=5)
+                entry = ttk.Entry(self.coeff_frame, width=10, bootstyle="primary")
+                entry.grid(row=i+1, column=j+1, padx=5, pady=5, sticky="w")
                 constraint_entries_row.append(entry)
             self.constraint_entries.append(constraint_entries_row)
 
             # RHS
-            rhs_entry = tk.Entry(self.coeff_frame, width=10)
-            rhs_entry.grid(row=i+1, column=num_vars+1, padx=5, pady=5)
+            rhs_entry = ttk.Entry(self.coeff_frame, width=10, bootstyle="primary")
+            rhs_entry.grid(row=i+1, column=num_vars+1, padx=5, pady=5, sticky="w")
             self.rhs_entries.append(rhs_entry)
 
             # Constraint type
             constraint_type_var = tk.StringVar(value="<=")
-            tk.OptionMenu(self.coeff_frame, constraint_type_var, "<=", ">=", "=").grid(row=i+1, column=num_vars+2, padx=5, pady=5)
+            ttk.OptionMenu(self.coeff_frame, constraint_type_var, "<=", ">=", "=", bootstyle="info").grid(row=i+1, column=num_vars+2, padx=5, pady=5, sticky="w")
             self.constraint_type_vars.append(constraint_type_var)
 
     def solve(self):
@@ -131,6 +143,6 @@ class LPApp:
             messagebox.showerror("Error", str(e))
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = ttk.Window(themename="cosmo")  # Use a modern theme
     app = LPApp(root)
     root.mainloop()
