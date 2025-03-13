@@ -4,6 +4,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from simplex import SimplexSolver  # Import SimplexSolver from simplex.py
 from bigM import BigMSolver  # Import BigMSolver from bigM.py
+from twophase import TwoPhaseSimplexSolver  # Import TwoPhaseSimplexSolver from two_phase.py
 import numpy as np
 import pandas as pd
 from tabulate import tabulate
@@ -36,6 +37,7 @@ class LPApp:
         ttk.Label(input_frame, text="Select Method:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
         ttk.Radiobutton(input_frame, text="Simplex", variable=self.method_var, value="simplex", bootstyle="info").grid(row=0, column=1, padx=10, pady=10, sticky="w")
         ttk.Radiobutton(input_frame, text="Big M", variable=self.method_var, value="bigm", bootstyle="info").grid(row=0, column=2, padx=10, pady=10, sticky="w")
+        ttk.Radiobutton(input_frame, text="Two-Phase Simplex", variable=self.method_var, value="two_phase", bootstyle="info").grid(row=0, column=3, padx=10, pady=10, sticky="w")
 
         # Problem type selection
         ttk.Label(input_frame, text="Problem Type:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
@@ -119,8 +121,10 @@ class LPApp:
             # Solve using the selected method
             if self.method_var.get() == "simplex":
                 solver = SimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
-            else:
+            elif self.method_var.get() == "bigm":
                 solver = BigMSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+            elif self.method_var.get() == "two_phase":
+                solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
 
             solver.solve(display_steps=True)
             results = solver.get_results()
