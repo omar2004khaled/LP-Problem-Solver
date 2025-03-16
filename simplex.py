@@ -158,8 +158,27 @@ class SimplexSolver:
         """
         Display the current tableau in a fancy way using tabulate.
         """
-        headers = [f'x{i + 1}' for i in range(self.num_vars)] + [f's{i + 1}' for i in range(self.tableau.shape[1] - self.num_vars - 1)] + ['RHS']
-        print(tabulate(self.tableau, headers=headers, tablefmt='grid', floatfmt='.2f'))
+        # Create headers for the tableau
+        headers = ['Basic'] + [f'x{i + 1}' for i in range(self.num_vars)] + [f's{i + 1}' for i in range(self.tableau.shape[1] - self.num_vars - 1)] + ['RHS']
+        
+        # Create a list to hold the rows of the tableau
+        tableau_rows = []
+        
+        # Iterate over each row in the tableau (excluding the objective row)
+        for i in range(self.num_constraints):
+            # Determine the basic variable for this row
+            basic_var = f's{self.basis[i] - self.num_vars + 1}' if self.basis[i] >= self.num_vars else f'x{self.basis[i] + 1}'
+            
+            # Create the row with the basic variable and the tableau values
+            row = [basic_var] + list(self.tableau[i, :])
+            tableau_rows.append(row)
+        
+        # Add the objective row (Z-row) to the tableau
+        objective_row = ['Z'] + list(self.tableau[-1, :])
+        tableau_rows.append(objective_row)
+        
+        # Display the tableau using tabulate
+        print(tabulate(tableau_rows, headers=headers, tablefmt='grid', floatfmt='.2f'))
 
     def get_results(self):
         """
@@ -181,7 +200,7 @@ if __name__ == '__main__':
     # x1 >= 0, x2 >= 0, x3 >= 0, x4 >= 0
 
     # Objective function coefficients
-    c = [5, -4, 6, -8]
+    c = [5, -4, 6, -3]
 
     # Constraint coefficients
     A = [
@@ -191,7 +210,7 @@ if __name__ == '__main__':
     ]
 
     # Right-hand side values
-    b = [40, 8, 10]
+    b = [40, 18, 10]
 
     # Constraint types (all are <=)
     constraint_types = ['<=', '<=', '<=']
@@ -200,7 +219,7 @@ if __name__ == '__main__':
     variable_restrictions = ['non-negative', 'non-negative', 'non-negative', 'non-negative']
 
     # Problem type (minimization)
-    problem_type = 'min'
+    problem_type = 'max'
 
     # Initialize the solver
     solver = SimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
@@ -299,6 +318,10 @@ if __name__ == '__main__':
 
     # Get and print the results
     results = solver.get_results()
+    print("\nOptimal Solution:", results['optimal_solution'])
+    print("Optimal Value:", results['optimal_value'])
+    print("Status:", results['status'])
+"""
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])
