@@ -232,6 +232,7 @@ if __name__ == '__main__':
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])
+    
 """
 if __name__ == '__main__':
     # Given LP problem:
@@ -318,10 +319,6 @@ if __name__ == '__main__':
 
     # Get and print the results
     results = solver.get_results()
-    print("\nOptimal Solution:", results['optimal_solution'])
-    print("Optimal Value:", results['optimal_value'])
-    print("Status:", results['status'])
-"""
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])
