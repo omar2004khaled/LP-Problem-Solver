@@ -19,7 +19,7 @@ class GoalSolver:
         self.basis = None
         self.optimal_solution = None
         self.optimal_value = None
-        self.status = None
+        self.status = self.status = np.array(['unsatisfied'] * self.num_goals)
         self.headers = None
         self.tableau_rows = None
 
@@ -108,43 +108,53 @@ class GoalSolver:
         iteration = 0
         while True:
             if display_steps:
-                print(f"\nIteration {iteration} (Priority {priority_level}):")
+                print(f"\nIteration {iteration} for goal {index+1} of priority = {priority_level}:")
                 self.display_tableau()
             
             # Check for optimality
-            if all(self.tableau[self.num_constraints+index, :-1] >= 0):
-                self.status = 'optimal'
-                print("\nOptimal solution reached for priority level", priority_level)
+            if all(self.tableau[self.num_constraints+index, :-1] <= 0):
+                self.status[index] = 'satisfied'
+                print("\n")
+                print(f"goal {index+1} is satisfied")
                 break
             
             # Find entering variable (most negative coefficient in goal row)
-            entering_var = np.argmin(self.tableau[self.num_constraints+index, :-1])
-            print(f"\nEntering variable: {self.headers[entering_var+1]}, because it has the most negative coefficient {self.tableau[self.num_constraints+index, entering_var]:.2f} in the Z{index+1}-row.")
-
+            entering_var = np.argmax(self.tableau[self.num_constraints+index, :-1])
+            pivot_column_values = self.tableau[:, entering_var]
+            satisfied_goal_indices = [i for i in range(len(self.goals)) if self.status[i] == 'satisfied']
+            goal_rows = self.tableau[[self.num_constraints + i for i in satisfied_goal_indices], entering_var]
             
-            # Check if we can satisfy the current goal
-            if all(self.tableau[:-1, entering_var] <= 0):
-                self.status = 'unbounded'
-                print("\nThe problem is unbounded.")
+            if any(goal_rows != 0):
+                print("\nPivoting aborted: Non-zero values detected in other satisfied goal rows for pivot column.")
                 break
+
+            print(f"\nEntering variable: {self.headers[entering_var+1]}, because it has the most positive coefficient {self.tableau[self.num_constraints+index, entering_var]:.2f} in the Z{index+1}-row.")
+            
+            
             
             # Find leaving variable (minimum positive ratio rule)
             ratios = []
             for i in range(self.num_constraints):
                 if self.tableau[i, entering_var] > 0:
-                    ratios.append(self.tableau[i, -1] / self.tableau[i, entering_var])
+                    ratio = self.tableau[i, -1] / self.tableau[i, entering_var]
+                    if ratio >=0 :
+                      ratios.append(ratio)  
                 else:
                     ratios.append(np.inf)
             leaving_var = np.argmin(ratios)
             print(f"Leaving variable: {self.tableau_rows[leaving_var][0]}, because it has the smallest ratio {ratios[leaving_var]:.2f}.")
             
-            
+            if all(r == np.inf for r in ratios):
+                print("\nNo valid leaving variable found. The problem may be unbounded.")
+                self.status = 'unbounded'
+                break
+
             # Perform pivoting
             pivot_element = self.tableau[leaving_var, entering_var]
             print(f"\nPivot element: {pivot_element:.2f} at row {leaving_var + 1}, column {entering_var + 1}.")
             self.tableau[leaving_var, :] /= pivot_element
             print(f"Divide row {leaving_var + 1} by {pivot_element:.2f} to make the pivot element 1.")
-            for i in range(self.num_constraints + 1):
+            for i in range(self.num_constraints + self.num_goals):
                 if i != leaving_var:
                     factor = self.tableau[i, entering_var]
                     self.tableau[i, :] -= factor * self.tableau[leaving_var, :]
@@ -158,15 +168,20 @@ class GoalSolver:
         self.initialize_tableau()
         self.make_consistent()
         # Create a hashmap (dictionary) of priorities with their indices
-        priority_map = {priority: index for index, priority in enumerate(self.priority)}
-        
-        # Sort the priorities based on their values
+        priority_map = {}
+        for index, priority in enumerate(self.priority):
+            if priority not in priority_map:
+                priority_map[priority] = []
+            priority_map[priority].append(index)
+
         sorted_priorities = sorted(priority_map.items(), key=lambda item: item[0], reverse=True)
         
-        # Iterate over the sorted priorities and call solve_priority
-        for priority ,index in sorted_priorities:
-         self.solve_priority(priority,index, display_steps)
         
+        # Iterate over the sorted priorities and call solve_priority
+        for priority, indices in sorted_priorities:
+            for index in indices:  # Ensure all goals with the same priority are processed
+                self.solve_priority(priority, index, display_steps)
+                
         # Extract solution
         self.optimal_solution = np.zeros(self.num_vars)
         for i in range(self.num_constraints):
@@ -178,7 +193,7 @@ class GoalSolver:
         return {
             'optimal_solution': self.optimal_solution,
             'optimal_value': self.optimal_value,
-            'status': self.status
+            'status':  self.status.tolist()        
         }            
 
 if __name__ == '__main__':
@@ -202,5 +217,8 @@ if __name__ == '__main__':
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])
+    
+    
+
        
 
