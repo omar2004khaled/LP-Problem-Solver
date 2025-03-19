@@ -194,12 +194,12 @@ class BigMSolver:
 
 if __name__ == '__main__':
     # Problem setup
-    c = [3, 2]
-    A = [[2, 1], [1, 2]]
-    b = [4, 9]
-    constraint_types = ['<=', '>=']
-    variable_restrictions = ['non-negative', 'non-negative']
-    problem_type = 'max'
+    c = [3, 2,1]
+    A = [[1, 1,1], [0,1, -1], [1, 1, 2]]
+    b = [4, 2,6]
+    constraint_types = ['>=', '<=','=']
+    variable_restrictions = ['non-negative', 'non-negative','non-negative']
+    problem_type = 'min'
 
     solver = BigMSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
     solver.solve(display_steps=True)
