@@ -15,6 +15,7 @@ class GoalSolver:
         self.num_vars = len(c)
         self.num_constraints = len(b)
         self.num_goals = len(goals)
+        self.num_slack = 0
         self.tableau = None
         self.basis = None
         self.optimal_solution = None
@@ -22,21 +23,22 @@ class GoalSolver:
         self.status = self.status = np.array(['unsatisfied'] * self.num_goals)
         self.headers = None
         self.tableau_rows = None
+        self.goal_status = None
 
     def initialize_tableau(self):
-        num_slack =0
+        
         num_deviation =0
         for i in range(self.num_constraints):
          if self.constraint_types[i] == '<=' :
-            num_slack += 1
+            self.num_slack += 1
          elif self.constraint_types[i] == '>=' :
             num_deviation +=1
 
-        total_vars = self.num_vars + 2*num_deviation + num_slack
+        total_vars = self.num_vars + 2*num_deviation + self.num_slack
         self.tableau = np.zeros((self.num_constraints + self.num_goals , total_vars + 1)) 
 
         slack_index = self.num_vars 
-        deviation_index = self.num_vars + num_slack
+        deviation_index = self.num_vars + self.num_slack
 
         for i in range(self.num_constraints):
             if self.constraint_types[i] == '<=':
@@ -53,7 +55,7 @@ class GoalSolver:
 
         for i in range(self.num_goals): 
             goal_row = self.num_constraints + i
-            self.tableau[goal_row, self.num_vars + num_slack + i ] =-self.priority[i]
+            self.tableau[goal_row, self.num_vars + self.num_slack + i ] =-self.priority[i]
 
         self.basis = list(range(self.num_vars, total_vars))  
 
@@ -80,12 +82,12 @@ class GoalSolver:
             else:
                 deviation_index = self.basis[i] - self.num_vars - slack_count
                 if deviation_index < self.num_goals:  # First two deviation variables are d1- and d2-
-                    basic_var = f'd{deviation_index + 1}-'  # d1-, d2-
+                    basic_var = f'd-{deviation_index + 1}'  # d1-, d2-
                 else:
                     if deviation_index % 2 == 0:
-                        basic_var = f'd{(deviation_index // 2) + 1}+'  # Positive deviation
+                        basic_var = f'd+{(deviation_index // 2) }'  # Positive deviation
                     else:
-                        basic_var = f'd{(deviation_index // 2) + 1}-'
+                        basic_var = f'd-{(deviation_index // 2) }'
                     
 
         # Add the row to the tableau
@@ -188,13 +190,27 @@ class GoalSolver:
             if self.basis[i] < self.num_vars:
                 self.optimal_solution[self.basis[i]] = self.tableau[i, -1]
         self.optimal_value = self.tableau[-1, -1]
+
+        self.goal_status = []
+        for i in range(self.num_constraints):
+            if self.basis[i] > self.num_vars + self.num_slack and self.basis[i] < self.num_vars + self.num_slack + self.num_goals:  #for negative d's
+                res = self.tableau[i, -1]
+                index = self.basis[i] -self.num_vars - self.num_slack
+                self.goal_status.append(f"Goal {index+1} not satisfied, penalty = {res}")
+            elif self.basis[i] > self.num_vars + self.num_slack + self.num_goals :
+                res = self.tableau[i ,-1]
+                index = self.basis[i] -self.num_vars - self.num_slack-self.num_goals
+                self.goal_status.append(f"Goal {index+1} is satisfied with excess = {res}")    
+
+        
     def get_results(self):
         
         return {
             'optimal_solution': self.optimal_solution,
             'optimal_value': self.optimal_value,
-            'status':  self.status.tolist()        
-        }            
+            'status': self.status.tolist(),
+            'goal_status': self.goal_status,
+        }           
 
 if __name__ == '__main__':
     # Example Goal Programming Problem
@@ -217,6 +233,7 @@ if __name__ == '__main__':
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])
+    print("goal status:" , results['goal_status'])
     
     
 
