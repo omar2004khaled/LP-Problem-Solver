@@ -73,7 +73,7 @@ class TwoPhaseSimplexSolver:
             self.tableau[i, -1] = self.b[i]
 
         # Initialize basis
-        self.basis = list(range(self.num_vars + slack_vars, total_vars))
+        self.basis = list(range(self.num_vars, self.num_vars + self.num_constraints))
 
     def phase1(self):
         """
@@ -252,6 +252,26 @@ class TwoPhaseSimplexSolver:
             'status': self.status
         }
 
+
+if __name__ == '__main__':
+    # Problem setup
+    c = [2, 3, 4]
+    A = [[3, 2, 1], [2, 3, 3], [1, 1, -1]]
+    b = [10, 15, 4]
+    constraint_types = ['<=', '<=', '>=']
+    variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
+    problem_type = 'max'
+
+    solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+    solver.solve(display_steps=True)
+
+    results = solver.get_results()
+    print("\nOptimal Solution:", results['optimal_solution'])
+    print("Optimal Value:", results['optimal_value'])
+    print("Status:", results['status'])
+'''
+
+    
 if __name__ == '__main__':
     # Problem setup
     c = [1, 2, 1]
@@ -267,4 +287,5 @@ if __name__ == '__main__':
     results = solver.get_results()
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
-    print("Status:", results['status'])
+    print("Status:", results['status'])'
+    '''
