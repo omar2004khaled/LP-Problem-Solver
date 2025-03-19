@@ -162,6 +162,11 @@ class BigMSolver:
         if self.problem_type == 'min':
             self.optimal_value = -self.optimal_value
 
+        # Check for infeasibility
+        if any(self.basis[i] >= self.num_vars and self.tableau[i, -1] != 0 for i in range(self.num_constraints)):
+            self.status = 'infeasible'
+            print("\nThe problem is infeasible because artificial variables are still in the basis with non-zero values.")
+
     def save_tableau(self, iteration):
         """
         Save the current tableau to a file for tracking.
@@ -203,45 +208,6 @@ if __name__ == '__main__':
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])
-'''
-if __name__ == '__main__':
-    # Problem setup
-    c = [2, 3, 4]
-    A = [[3, 2, 1], [2, 3, 3], [1, 1, -1]]
-    b = [10, 15, 4]
-    constraint_types = ['<=', '<=', '>=']
-    variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
-    problem_type = 'max'
-
-    solver = BigMSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
-    solver.solve(display_steps=True)
-
-    results = solver.get_results()
-    print("\nOptimal Solution:", results['optimal_solution'])
-    print("Optimal Value:", results['optimal_value'])
-    print("Status:", results['status'])
-    
-    
-    
-    
-if __name__ == '__main__':
-    # Problem setup
-    c = [1, 2, 1]
-    A = [[1, 1, 1], [2, -5, 1]]
-    b = [7, 10]
-    constraint_types = ['=', '>=']
-    variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
-    problem_type = 'max'
-
-    solver = BigMSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
-    solver.solve(display_steps=True)
-
-    results = solver.get_results()
-    print("\nOptimal Solution:", results['optimal_solution'])
-    print("Optimal Value:", results['optimal_value'])
-    print("Status:", results['status'])
-'''
-
     results = solver.get_results()
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
