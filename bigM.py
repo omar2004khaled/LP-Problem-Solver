@@ -208,7 +208,41 @@ if __name__ == '__main__':
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])
+'''
+if __name__ == '__main__':
+    # Problem setup
+    c = [2, 3, 4]
+    A = [[3, 2, 1], [2, 3, 3], [1, 1, -1]]
+    b = [10, 15, 4]
+    constraint_types = ['<=', '<=', '>=']
+    variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
+    problem_type = 'max'
+
+    solver = BigMSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+    solver.solve(display_steps=True)
+
     results = solver.get_results()
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])
+    
+    
+    
+    
+if __name__ == '__main__':
+    # Problem setup
+    c = [1, 2, 1]
+    A = [[1, 1, 1], [2, -5, 1]]
+    b = [7, 10]
+    constraint_types = ['=', '>=']
+    variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
+    problem_type = 'max'
+
+    solver = BigMSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+    solver.solve(display_steps=True)
+
+    results = solver.get_results()
+    print("\nOptimal Solution:", results['optimal_solution'])
+    print("Optimal Value:", results['optimal_value'])
+    print("Status:", results['status'])
+'''
