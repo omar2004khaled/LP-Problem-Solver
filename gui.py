@@ -3,7 +3,7 @@ from tkinter import messagebox, filedialog
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from simplex import SimplexSolver  # Import SimplexSolver from simplex.py
-from bigM import BigMSolver  # Import BigMSolver from bigM.py
+from bigmtest import BigMSolver  # Import BigMSolver from bigmtest.py
 from twophase import TwoPhaseSimplexSolver  # Import TwoPhaseSimplexSolver from two_phase.py
 from Goal import GoalSolver  # Import GoalSolver from Goal.py
 import numpy as np
