@@ -5,6 +5,7 @@ from ttkbootstrap.constants import *
 from simplex import SimplexSolver  # Import SimplexSolver from simplex.py
 from bigM import BigMSolver  # Import BigMSolver from bigM.py
 from twophase import TwoPhaseSimplexSolver  # Import TwoPhaseSimplexSolver from two_phase.py
+from Goal import GoalSolver  # Import GoalSolver from Goal.py
 import numpy as np
 import pandas as pd
 from tabulate import tabulate
@@ -20,17 +21,30 @@ class LPApp:
         self.main_frame = ttk.Frame(self.root)
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
+        # Notebook to hold the two pages
+        self.notebook = ttk.Notebook(self.main_frame)
+        self.notebook.pack(fill=tk.BOTH, expand=True)
+
+        # Page 1: Simplex, Big M, Two-Phase
+        self.page1 = ttk.Frame(self.notebook)
+        self.notebook.add(self.page1, text="Simplex/Big M/Two-Phase")
+
+        # Page 2: Goal Programming
+        self.page2 = ttk.Frame(self.notebook)
+        self.notebook.add(self.page2, text="Goal Programming")
+
         # Method selection
         self.method_var = tk.StringVar(value="simplex")
         self.problem_type_var = tk.StringVar(value="max")
         self.num_vars = tk.IntVar(value=2)
         self.num_constraints = tk.IntVar(value=2)
 
-        self.create_widgets()
+        self.create_page1_widgets()
+        self.create_page2_widgets()
 
-    def create_widgets(self):
+    def create_page1_widgets(self):
         # Input section
-        input_frame = ttk.Labelframe(self.main_frame, text="Input Parameters", padding=10)
+        input_frame = ttk.Labelframe(self.page1, text="Input Parameters", padding=10)
         input_frame.pack(fill=tk.X, padx=10, pady=10)
 
         # Method selection
@@ -57,14 +71,59 @@ class LPApp:
         ttk.Button(input_frame, text="Update Input Fields", command=self.update_input_fields, bootstyle="success").grid(row=4, column=0, columnspan=3, padx=10, pady=10)
 
         # Input fields for coefficients
-        self.coeff_frame = ttk.Labelframe(self.main_frame, text="Coefficients", padding=10)
+        self.coeff_frame = ttk.Labelframe(self.page1, text="Coefficients", padding=10)
         self.coeff_frame.pack(fill=tk.X, padx=10, pady=10)
 
         # Solve button
-        ttk.Button(self.main_frame, text="Solve", command=self.solve, bootstyle="primary").pack(pady=10)
+        ttk.Button(self.page1, text="Solve", command=self.solve, bootstyle="primary").pack(pady=10)
 
         # Initialize input fields
         self.update_input_fields()
+
+    def create_page2_widgets(self):
+        # Input section for Goal Programming
+        input_frame = ttk.Labelframe(self.page2, text="Goal Programming Parameters", padding=10)
+        input_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        # Number of variables and constraints
+        ttk.Label(input_frame, text="Number of Variables:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        self.num_vars_entry_goal = ttk.Entry(input_frame, textvariable=self.num_vars, width=10, bootstyle="primary")
+        self.num_vars_entry_goal.grid(row=0, column=1, padx=10, pady=10, sticky="w")
+
+        ttk.Label(input_frame, text="Number of Constraints:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+        self.num_constraints_entry_goal = ttk.Entry(input_frame, textvariable=self.num_constraints, width=10, bootstyle="primary")
+        self.num_constraints_entry_goal.grid(row=1, column=1, padx=10, pady=10, sticky="w")
+
+        # Button to update input fields
+        ttk.Button(input_frame, text="Update Input Fields", command=self.update_goal_input_fields, bootstyle="success").grid(row=2, column=0, columnspan=3, padx=10, pady=10)
+
+        # Input fields for coefficients
+        self.coeff_frame_goal = ttk.Labelframe(self.page2, text="Coefficients", padding=10)
+        self.coeff_frame_goal.pack(fill=tk.X, padx=10, pady=10)
+
+        # Goal Programming specific fields
+        self.goal_frame = ttk.Labelframe(self.page2, text="Goal Programming Parameters", padding=10)
+        self.goal_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        ttk.Label(self.goal_frame, text="Goals:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        self.goal_entries = []
+        for i in range(self.num_constraints.get()):
+            entry = ttk.Entry(self.goal_frame, width=10, bootstyle="primary")
+            entry.grid(row=0, column=i+1, padx=5, pady=5, sticky="w")
+            self.goal_entries.append(entry)
+
+        ttk.Label(self.goal_frame, text="Priority:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+        self.priority_entries = []
+        for i in range(self.num_constraints.get()):
+            entry = ttk.Entry(self.goal_frame, width=10, bootstyle="primary")
+            entry.grid(row=1, column=i+1, padx=5, pady=5, sticky="w")
+            self.priority_entries.append(entry)
+
+        # Solve button
+        ttk.Button(self.page2, text="Solve", command=self.solve_goal, bootstyle="primary").pack(pady=10)
+
+        # Initialize input fields
+        self.update_goal_input_fields()
 
     def update_input_fields(self):
         # Clear previous input fields
@@ -105,6 +164,62 @@ class LPApp:
             ttk.OptionMenu(self.coeff_frame, constraint_type_var, "<=", ">=", "=", bootstyle="info").grid(row=i+1, column=num_vars+2, padx=5, pady=5, sticky="w")
             self.constraint_type_vars.append(constraint_type_var)
 
+    def update_goal_input_fields(self):
+        # Clear previous input fields
+        for widget in self.coeff_frame_goal.winfo_children():
+            widget.destroy()
+        for widget in self.goal_frame.winfo_children():
+            widget.destroy()
+
+        num_vars = self.num_vars.get()
+        num_constraints = self.num_constraints.get()
+
+        # Objective function coefficients
+        ttk.Label(self.coeff_frame_goal, text="Objective Function Coefficients:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        self.obj_coeff_entries_goal = []
+        for i in range(num_vars):
+            entry = ttk.Entry(self.coeff_frame_goal, width=10, bootstyle="primary")
+            entry.grid(row=0, column=i+1, padx=5, pady=5, sticky="w")
+            self.obj_coeff_entries_goal.append(entry)
+
+        # Constraint coefficients
+        self.constraint_entries_goal = []
+        self.rhs_entries_goal = []
+        self.constraint_type_vars_goal = []
+        for i in range(num_constraints):
+            ttk.Label(self.coeff_frame_goal, text=f"Constraint {i+1}:").grid(row=i+1, column=0, padx=10, pady=10, sticky="w")
+            constraint_entries_row = []
+            for j in range(num_vars):
+                entry = ttk.Entry(self.coeff_frame_goal, width=10, bootstyle="primary")
+                entry.grid(row=i+1, column=j+1, padx=5, pady=5, sticky="w")
+                constraint_entries_row.append(entry)
+            self.constraint_entries_goal.append(constraint_entries_row)
+
+            # RHS
+            rhs_entry = ttk.Entry(self.coeff_frame_goal, width=10, bootstyle="primary")
+            rhs_entry.grid(row=i+1, column=num_vars+1, padx=5, pady=5, sticky="w")
+            self.rhs_entries_goal.append(rhs_entry)
+
+            # Constraint type
+            constraint_type_var = tk.StringVar(value="<=")
+            ttk.OptionMenu(self.coeff_frame_goal, constraint_type_var, "<=", ">=", "=", bootstyle="info").grid(row=i+1, column=num_vars+2, padx=5, pady=5, sticky="w")
+            self.constraint_type_vars_goal.append(constraint_type_var)
+
+        # Goal Programming specific fields
+        ttk.Label(self.goal_frame, text="Goals:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        self.goal_entries = []
+        for i in range(num_constraints):
+            entry = ttk.Entry(self.goal_frame, width=10, bootstyle="primary")
+            entry.grid(row=0, column=i+1, padx=5, pady=5, sticky="w")
+            self.goal_entries.append(entry)
+
+        ttk.Label(self.goal_frame, text="Priority:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+        self.priority_entries = []
+        for i in range(num_constraints):
+            entry = ttk.Entry(self.goal_frame, width=10, bootstyle="primary")
+            entry.grid(row=1, column=i+1, padx=5, pady=5, sticky="w")
+            self.priority_entries.append(entry)
+
     def solve(self):
         try:
             # Get input values
@@ -126,6 +241,43 @@ class LPApp:
             elif self.method_var.get() == "two_phase":
                 solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
 
+            solver.solve(display_steps=True)
+            results = solver.get_results()
+
+            # Display results
+            messagebox.showinfo("Results", f"Optimal Solution: {results['optimal_solution']}\nOptimal Value: {results['optimal_value']}\nStatus: {results['status']}")
+
+            # Save steps to a file
+            file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt")])
+            if file_path:
+                with open(file_path, "w") as f:
+                    f.write(f"Optimal Solution: {results['optimal_solution']}\n")
+                    f.write(f"Optimal Value: {results['optimal_value']}\n")
+                    f.write(f"Status: {results['status']}\n")
+                    f.write("\nSteps:\n")
+                    for i in range(solver.num_constraints + 1):
+                        f.write(tabulate(solver.tableau, headers=[f'x{j+1}' for j in range(solver.num_vars)] + [f's{j+1}' for j in range(solver.tableau.shape[1] - solver.num_vars - 1)] + ['RHS'], tablefmt='grid', floatfmt='.2f') + "\n")
+
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def solve_goal(self):
+        try:
+            # Get input values
+            num_vars = self.num_vars.get()
+            num_constraints = self.num_constraints.get()
+
+            c = [float(entry.get()) for entry in self.obj_coeff_entries_goal]
+            A = [[float(entry.get()) for entry in row] for row in self.constraint_entries_goal]
+            b = [float(entry.get()) for entry in self.rhs_entries_goal]
+            goals = [float(entry.get()) for entry in self.goal_entries]
+            priority = [float(entry.get()) for entry in self.priority_entries]
+            constraint_types = [var.get() for var in self.constraint_type_vars_goal]
+            variable_restrictions = ['non-negative'] * num_vars
+            problem_type = self.problem_type_var.get()
+
+            # Solve using Goal Programming
+            solver = GoalSolver(c, A, b, goals, priority, constraint_types, variable_restrictions, problem_type)
             solver.solve(display_steps=True)
             results = solver.get_results()
 
