@@ -57,7 +57,7 @@ class GoalSolver:
             goal_row = self.num_constraints + i
             self.tableau[goal_row, self.num_vars + self.num_slack + i ] =-self.priority[i]
 
-        self.basis = list(range(self.num_vars, total_vars))  
+        self.basis = list(range(self.num_vars, self.num_vars+self.num_goals+self.num_slack))  
 
     def display_tableau(self):
          
