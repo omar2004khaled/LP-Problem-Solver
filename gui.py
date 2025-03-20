@@ -38,6 +38,7 @@ class LPApp:
         self.problem_type_var = tk.StringVar(value="max")
         self.num_vars = tk.IntVar(value=2)
         self.num_constraints = tk.IntVar(value=2)
+        self.num_goals = tk.IntVar(value=1)  # New variable for number of goals
 
         self.create_page1_widgets()
         self.create_page2_widgets()
@@ -67,8 +68,13 @@ class LPApp:
         self.num_constraints_entry = ttk.Entry(input_frame, textvariable=self.num_constraints, width=10, bootstyle="primary")
         self.num_constraints_entry.grid(row=3, column=1, padx=10, pady=10, sticky="w")
 
+        # Number of goals
+        ttk.Label(input_frame, text="Number of Goals:").grid(row=4, column=0, padx=10, pady=10, sticky="w")
+        self.num_goals_entry = ttk.Entry(input_frame, textvariable=self.num_goals, width=10, bootstyle="primary")
+        self.num_goals_entry.grid(row=4, column=1, padx=10, pady=10, sticky="w")
+
         # Button to update input fields
-        ttk.Button(input_frame, text="Update Input Fields", command=self.update_input_fields, bootstyle="success").grid(row=4, column=0, columnspan=3, padx=10, pady=10)
+        ttk.Button(input_frame, text="Update Input Fields", command=self.update_input_fields, bootstyle="success").grid(row=5, column=0, columnspan=3, padx=10, pady=10)
 
         # Input fields for coefficients
         self.coeff_frame = ttk.Labelframe(self.page1, text="Coefficients", padding=10)
@@ -94,8 +100,13 @@ class LPApp:
         self.num_constraints_entry_goal = ttk.Entry(input_frame, textvariable=self.num_constraints, width=10, bootstyle="primary")
         self.num_constraints_entry_goal.grid(row=1, column=1, padx=10, pady=10, sticky="w")
 
+        # Number of goals
+        ttk.Label(input_frame, text="Number of Goals:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
+        self.num_goals_entry_goal = ttk.Entry(input_frame, textvariable=self.num_goals, width=10, bootstyle="primary")
+        self.num_goals_entry_goal.grid(row=2, column=1, padx=10, pady=10, sticky="w")
+
         # Button to update input fields
-        ttk.Button(input_frame, text="Update Input Fields", command=self.update_goal_input_fields, bootstyle="success").grid(row=2, column=0, columnspan=3, padx=10, pady=10)
+        ttk.Button(input_frame, text="Update Input Fields", command=self.update_goal_input_fields, bootstyle="success").grid(row=3, column=0, columnspan=3, padx=10, pady=10)
 
         # Input fields for coefficients
         self.coeff_frame_goal = ttk.Labelframe(self.page2, text="Coefficients", padding=10)
@@ -107,14 +118,14 @@ class LPApp:
 
         ttk.Label(self.goal_frame, text="Goals:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
         self.goal_entries = []
-        for i in range(self.num_constraints.get()):
+        for i in range(self.num_goals.get()):
             entry = ttk.Entry(self.goal_frame, width=10, bootstyle="primary")
             entry.grid(row=0, column=i+1, padx=5, pady=5, sticky="w")
             self.goal_entries.append(entry)
 
         ttk.Label(self.goal_frame, text="Priority:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
         self.priority_entries = []
-        for i in range(self.num_constraints.get()):
+        for i in range(self.num_goals.get()):
             entry = ttk.Entry(self.goal_frame, width=10, bootstyle="primary")
             entry.grid(row=1, column=i+1, padx=5, pady=5, sticky="w")
             self.priority_entries.append(entry)
@@ -173,6 +184,7 @@ class LPApp:
 
         num_vars = self.num_vars.get()
         num_constraints = self.num_constraints.get()
+        num_goals = self.num_goals.get()
 
         # Objective function coefficients
         ttk.Label(self.coeff_frame_goal, text="Objective Function Coefficients:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
@@ -208,14 +220,14 @@ class LPApp:
         # Goal Programming specific fields
         ttk.Label(self.goal_frame, text="Goals:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
         self.goal_entries = []
-        for i in range(num_constraints):
+        for i in range(num_goals):
             entry = ttk.Entry(self.goal_frame, width=10, bootstyle="primary")
             entry.grid(row=0, column=i+1, padx=5, pady=5, sticky="w")
             self.goal_entries.append(entry)
 
         ttk.Label(self.goal_frame, text="Priority:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
         self.priority_entries = []
-        for i in range(num_constraints):
+        for i in range(num_goals):
             entry = ttk.Entry(self.goal_frame, width=10, bootstyle="primary")
             entry.grid(row=1, column=i+1, padx=5, pady=5, sticky="w")
             self.priority_entries.append(entry)
@@ -266,6 +278,7 @@ class LPApp:
             # Get input values
             num_vars = self.num_vars.get()
             num_constraints = self.num_constraints.get()
+            num_goals = self.num_goals.get()
 
             c = [float(entry.get()) for entry in self.obj_coeff_entries_goal]
             A = [[float(entry.get()) for entry in row] for row in self.constraint_entries_goal]
