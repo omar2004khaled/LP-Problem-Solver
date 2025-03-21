@@ -63,20 +63,19 @@ class TwoPhaseSimplexSolver:
         self.temp = self.num_artificial
         self.basis = list(range(self.num_vars, self.num_vars + self.num_slack+self.num_artificial))
 
-    def phase1(self):
+    def phase1(self):                    #Always minmization
         phase1_obj = np.zeros(self.tableau.shape[1])
         artificial_start = self.num_vars + self.num_slack
         artificial_end = artificial_start + self.num_artificial
         
         for i in range(artificial_start, artificial_end):
             phase1_obj[i] = -1 
-        
-        original_obj = np.zeros_like(self.tableau[-1, :])
-        original_obj[:len(self.c)] = self.c 
+    
         self.tableau[-1, :] = phase1_obj
         
         self.make_consistent()
-        self.solve_simplex(phase='Phase 1', is_minimization=True)
+        self.solve_simplex(phase='Phase 1')
+        
 
         for i in range(self.num_slack+self.num_artificial):
             if self.basis[i] >= artificial_start and self.basis[i] <= artificial_end :
@@ -86,8 +85,9 @@ class TwoPhaseSimplexSolver:
             if self.basis[i] >= artificial_start and self.basis[i] <= artificial_end :
                 if self.tableau[i,-1] != 0 :
                     return False
-
-        self.tableau[-1, :] = original_obj
+        """ original_obj = np.zeros_like(self.tableau[-1, :])
+        original_obj[:len(self.c)] = self.c 
+        self.tableau[-1, :] = original_obj"""
         
         self.remove_artificial_variables()
         self.update_z_row_for_phase2()
@@ -119,14 +119,19 @@ class TwoPhaseSimplexSolver:
             if coeff_in_obj != 0:  # If the variable appears in Z with a nonzero coefficient
                 self.tableau[-1, :] -= coeff_in_obj * self.tableau[i, :]
 
-    def solve_simplex(self, phase='Phase 2', is_minimization=False):
+    def solve_simplex(self, phase):
         iteration = 0
+
+        if phase == 'Phase 1' :
+            problemtype = 'min'
+        else:
+            problemtype = self.problem_type      
 
         print(f"\n{phase} - Iteration {iteration}:")
         self.display_tableau()
 
         while True:
-            if is_minimization:
+            if problemtype == 'min':
                 if all(self.tableau[-1, :-1] <= 0):  # Minimization: all coefficients in Z-row should be <= 0
                     self.status = 'optimal'
                     print(f"\n{phase} - Optimal solution reached.")
@@ -138,11 +143,11 @@ class TwoPhaseSimplexSolver:
                     break
 
             # Select entering variable
-            if is_minimization:
+            if problemtype == 'min':
                 entering_var = np.argmax(self.tableau[-1, :-1])  # Minimization: choose the most positive coefficient
             else:
                 entering_var = np.argmin(self.tableau[-1, :-1])  # Maximization: choose the most negative coefficient
-            print(f"\nEntering variable: x{entering_var + 1}, because it has the most {'positive' if is_minimization else 'negative'} coefficient {self.tableau[-1, entering_var]:.2f} in the Z-row.")
+            print(f"\nEntering variable: x{entering_var + 1}, because it has the most {'positive' if problemtype == 'min' else 'negative'} coefficient {self.tableau[-1, entering_var]:.2f} in the Z-row.")
 
             # Check for unboundedness
             if all(self.tableau[:-1, entering_var] <= 0):
@@ -199,9 +204,7 @@ class TwoPhaseSimplexSolver:
                 self.optimal_solution[self.basis[i]] = self.tableau[i, -1]
         self.optimal_value = self.tableau[-1, -1]
 
-        # Adjust the optimal value for minimization problems
-        if self.problem_type == 'min':
-            self.optimal_value = -self.optimal_value
+        
 
     def display_tableau(self):
         self.headers = ['Basic'] + [f'x{i + 1}' for i in range(self.num_vars)]
@@ -238,7 +241,7 @@ class TwoPhaseSimplexSolver:
         }
 
 
-if __name__ == '__main__':
+"""if __name__ == '__main__':
     # Problem setup
     c = [1,2,1]
     A = [[1,1,1], [2,-5,1]]
@@ -253,18 +256,18 @@ if __name__ == '__main__':
     results = solver.get_results()
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
-    print("Status:", results['status'])
-'''
+    print("Status:", results['status'])"""
+
 
     
 if __name__ == '__main__':
     # Problem setup
-    c = [1, 2, 1]
-    A = [[1, 1, 1], [2, -5, 1]]
-    b = [7, 10]
-    constraint_types = ['=', '>=']
-    variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
-    problem_type = 'max'
+    c = [1,1]
+    A = [[2,1], [1,7]]
+    b = [4,7]
+    constraint_types = ['>=', '>=']
+    variable_restrictions = ['non-negative', 'non-negative']
+    problem_type = 'min'
 
     solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
     solver.solve(display_steps=True)
@@ -272,5 +275,5 @@ if __name__ == '__main__':
     results = solver.get_results()
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
-    print("Status:", results['status'])'
-    '''
+    print("Status:", results['status'])
+    
