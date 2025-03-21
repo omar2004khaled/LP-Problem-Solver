@@ -85,9 +85,6 @@ class TwoPhaseSimplexSolver:
             if self.basis[i] >= artificial_start and self.basis[i] <= artificial_end :
                 if self.tableau[i,-1] != 0 :
                     return False
-        """ original_obj = np.zeros_like(self.tableau[-1, :])
-        original_obj[:len(self.c)] = self.c 
-        self.tableau[-1, :] = original_obj"""
         
         self.remove_artificial_variables()
         self.update_z_row_for_phase2()
@@ -131,6 +128,7 @@ class TwoPhaseSimplexSolver:
         self.display_tableau()
 
         while True:
+            
             if problemtype == 'min':
                 if all(self.tableau[-1, :-1] <= 0):  # Minimization: all coefficients in Z-row should be <= 0
                     self.status = 'optimal'
@@ -191,7 +189,8 @@ class TwoPhaseSimplexSolver:
 
         # Phase 1
         if not self.phase1():
-            print("\nPhase 1 - No feasible solution found.")
+            self.status = 'NON-optimal'
+            print("\nPhase 1 - No feasible solution found beacuase Artifical variable appear in basic coloumn.")
             return
 
         # Phase 2
@@ -257,10 +256,26 @@ class TwoPhaseSimplexSolver:
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])"""
+"""if __name__ == '__main__':
+    # Problem setup
+    c = [5,8]
+    A = [[1,1] ,[3,2], [1,4]]
+    b = [5,3,4]
+    constraint_types = ['<=','>=','>=']
+    variable_restrictions = ['non-negative', 'non-negative']
+    problem_type = 'max'
+
+    solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+    solver.solve(display_steps=True)
+
+    results = solver.get_results()
+    print("\nOptimal Solution:", results['optimal_solution'])
+    print("Optimal Value:", results['optimal_value'])
+    print("Status:", results['status'])"""
 
 
     
-if __name__ == '__main__':
+"""if __name__ == '__main__':
     # Problem setup
     c = [1,1]
     A = [[2,1], [1,7]]
@@ -275,5 +290,73 @@ if __name__ == '__main__':
     results = solver.get_results()
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
-    print("Status:", results['status'])
+    print("Status:", results['status'])"""
+
+"""if __name__ == '__main__':
+    # Problem setup
+    c = [-3,1,-2]
+    A = [[1,3,1], [2,-1,1] , [4,3,-2]]
+    b = [5,2,5]
+    constraint_types = ['<=', '>=' ,'=']
+    variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
+    problem_type = 'min'
+
+    solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+    solver.solve(display_steps=True)
+
+    results = solver.get_results()
+    print("\nOptimal Solution:", results['optimal_solution'])
+    print("Optimal Value:", results['optimal_value'])
+    print("Status:", results['status'])"""
+
+"""if __name__ == '__main__':
+    # Problem setup
+    c = [5,2,10]
+    A = [[1,0,-1], [0,1,1]]
+    b = [10,10]
+    constraint_types = ['<=', '>=']
+    variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
+    problem_type = 'min'
+
+    solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+    solver.solve(display_steps=True)
+
+    results = solver.get_results()
+    print("\nOptimal Solution:", results['optimal_solution'])
+    print("Optimal Value:", results['optimal_value'])
+    print("Status:", results['status']) """   
     
+"""if __name__ == '__main__':
+    # Problem setup
+    c = [1,-2,-3]
+    A = [[-2,1,3], [2,3,4]]
+    b = [2,1]
+    constraint_types = ['=', '=']
+    variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
+    problem_type = 'min'
+
+    solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+    solver.solve(display_steps=True)
+
+    results = solver.get_results()
+    print("\nOptimal Solution:", results['optimal_solution'])
+    print("Optimal Value:", results['optimal_value'])
+    print("Status:", results['status'])"""
+
+if __name__ == '__main__':
+    # Problem setup
+    c = [2,3]
+    A = [[0.5,0.25], [1,3] ,[1,1]]
+    b = [4,36,10]
+    constraint_types = ['<=', '>=' , '=']
+    variable_restrictions = ['non-negative', 'non-negative']
+    problem_type = 'min'
+
+    solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+    solver.solve(display_steps=True)
+
+    results = solver.get_results()
+    print("\nOptimal Solution:", results['optimal_solution'])
+    print("Optimal Value:", results['optimal_value'])
+    print("Status:", results['status'])
+     
