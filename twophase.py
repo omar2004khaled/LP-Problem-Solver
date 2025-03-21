@@ -76,11 +76,6 @@ class TwoPhaseSimplexSolver:
         self.make_consistent()
         self.solve_simplex(phase='Phase 1')
         
-
-        for i in range(self.num_slack+self.num_artificial):
-            if self.basis[i] >= artificial_start and self.basis[i] <= artificial_end :
-                return False
-            
         for i in range(self.num_slack+self.num_artificial):
             if self.basis[i] >= artificial_start and self.basis[i] <= artificial_end :
                 if self.tableau[i,-1] != 0 :
@@ -91,12 +86,22 @@ class TwoPhaseSimplexSolver:
         return True
 
     def remove_artificial_variables(self):
-        artificial_start = self.num_vars + self.num_slack
+        """artificial_start = self.num_vars + self.num_slack
         artificial_end = artificial_start + self.num_artificial
         artificial_cols = list(range(artificial_start, artificial_end))
         self.tableau = np.delete(self.tableau, artificial_cols, axis=1)
         self.basis = [var - self.num_artificial if var >= artificial_start else var for var in self.basis]
-        self.num_artificial = 0
+        self.num_artificial = 0"""
+        artificial_start = self.num_vars + self.num_slack
+        artificial_end = artificial_start + self.num_artificial
+        artificial_cols = [col for col in range(artificial_start, artificial_end) if col not in self.basis]
+
+        if artificial_cols:  
+            self.tableau = np.delete(self.tableau, artificial_cols, axis=1)
+
+        self.basis = [var - sum(1 for col in artificial_cols if col < var) if var >= artificial_start else var for var in self.basis]
+
+        self.num_artificial -= len(artificial_cols)
 
     def update_z_row_for_phase2(self):
         self.tableau[-1, :self.num_vars] = -self.c 
@@ -119,7 +124,7 @@ class TwoPhaseSimplexSolver:
     def solve_simplex(self, phase):
         iteration = 0
 
-        if phase == 'Phase 1' :
+        if phase == 'Phase 1':
             problemtype = 'min'
         else:
             problemtype = self.problem_type      
@@ -145,7 +150,18 @@ class TwoPhaseSimplexSolver:
                 entering_var = np.argmax(self.tableau[-1, :-1])  # Minimization: choose the most positive coefficient
             else:
                 entering_var = np.argmin(self.tableau[-1, :-1])  # Maximization: choose the most negative coefficient
-            print(f"\nEntering variable: x{entering_var + 1}, because it has the most {'positive' if problemtype == 'min' else 'negative'} coefficient {self.tableau[-1, entering_var]:.2f} in the Z-row.")
+            
+            # Determine the variable type
+            if entering_var < self.num_vars:
+                variable_type = f'x{entering_var + 1}'  # Decision variable
+            elif entering_var < self.num_vars + self.num_slack:
+                variable_type = f's{entering_var - self.num_vars + 1}'  # Slack variable
+            elif entering_var < self.num_vars + self.num_slack + self.num_artificial:
+                variable_type = f'A{entering_var - self.num_vars - self.num_slack + 1}'  # Artificial variable
+            else:
+                variable_type = f'e{entering_var - self.num_vars - self.num_slack - self.num_artificial + 1}'  # Surplus variable
+
+            print(f"\nEntering variable: {variable_type}, because it has the most {'positive' if problemtype == 'min' else 'negative'} coefficient {self.tableau[-1, entering_var]:.2f} in the Z-row.")
 
             # Check for unboundedness
             if all(self.tableau[:-1, entering_var] <= 0):
@@ -153,7 +169,7 @@ class TwoPhaseSimplexSolver:
                 print("\nThe problem is unbounded.")
                 break
 
-            # Select leaving variable (minimum ratio test)
+           
             ratios = []
             for i in range(self.num_constraints):
                 if self.tableau[i, entering_var] > 0:
@@ -161,7 +177,18 @@ class TwoPhaseSimplexSolver:
                 else:
                     ratios.append(np.inf)
             leaving_var = np.argmin(ratios)
-            print(f"Leaving variable: s{leaving_var + 1}, because it has the smallest ratio {ratios[leaving_var]:.2f}.")
+
+            # Determine the variable type for the leaving variable
+            if self.basis[leaving_var] < self.num_vars:
+                leaving_variable_type = f'x{self.basis[leaving_var] + 1}'  # Decision variable
+            elif self.basis[leaving_var] < self.num_vars + self.num_slack:
+                leaving_variable_type = f's{self.basis[leaving_var] - self.num_vars + 1}'  # Slack variable
+            elif self.basis[leaving_var] < self.num_vars + self.num_slack + self.num_artificial:
+                leaving_variable_type = f'A{self.basis[leaving_var] - self.num_vars - self.num_slack + 1}'  # Artificial variable
+            else:
+                leaving_variable_type = f'e{self.basis[leaving_var] - self.num_vars - self.num_slack - self.num_artificial + 1}'  # Surplus variable
+
+            print(f"Leaving variable: {leaving_variable_type}, because it has the smallest ratio {ratios[leaving_var]:.2f}.")
 
             # Pivot
             pivot_element = self.tableau[leaving_var, entering_var]
@@ -176,7 +203,7 @@ class TwoPhaseSimplexSolver:
 
             # Update basis
             self.basis[leaving_var] = entering_var
-            print(f"Update basis: x{entering_var + 1} enters the basis, s{leaving_var + 1} leaves the basis.")
+            print(f"Update basis: {variable_type} enters the basis, {leaving_variable_type} leaves the basis.")
 
             iteration += 1
 
@@ -256,6 +283,7 @@ class TwoPhaseSimplexSolver:
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])"""
+
 """if __name__ == '__main__':
     # Problem setup
     c = [5,8]
@@ -343,7 +371,7 @@ class TwoPhaseSimplexSolver:
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])"""
 
-if __name__ == '__main__':
+"""if __name__ == '__main__':
     # Problem setup
     c = [2,3]
     A = [[0.5,0.25], [1,3] ,[1,1]]
@@ -351,6 +379,23 @@ if __name__ == '__main__':
     constraint_types = ['<=', '>=' , '=']
     variable_restrictions = ['non-negative', 'non-negative']
     problem_type = 'min'
+
+    solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+    solver.solve(display_steps=True)
+
+    results = solver.get_results()
+    print("\nOptimal Solution:", results['optimal_solution'])
+    print("Optimal Value:", results['optimal_value'])
+    print("Status:", results['status'])"""
+
+if __name__ == '__main__':
+    # Problem setup
+    c = [40,10,0,0,7,14]
+    A = [[1,-1,0,0,2,0], [-2,1,0,0,-2,0], [1,0,1,0,1,-1] ,[0,1,1,1,2,1]]
+    b = [0,0,3,4]
+    constraint_types = ['=', '=' , '=' ,'=']
+    variable_restrictions = ['non-negative', 'non-negative','non-negative','non-negative','non-negative','non-negative']
+    problem_type = 'max'
 
     solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
     solver.solve(display_steps=True)
