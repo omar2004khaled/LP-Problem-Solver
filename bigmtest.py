@@ -57,73 +57,66 @@ class BigMSolver:
             elif self.constraint_types[i] == '=':
                 self.tableau[i, artificial_index] = +1
                 artificial_index += 1
-
             self.tableau[i,-1]=self.b[i]
-            self.temp=self.num_artificial
-            self.basis = list(range(self.num_vars, self.num_vars + self.num_slack+self.num_artificial))
-            self.tableau[-1, :self.num_vars] = -self.c if self.problem_type == 'max' else self.c
-            for i in range(self.num_artificial):
-                # self.tableau[-1, self.num_vars + self.num_slack + i] = self.M if self.problem_type == 'max' else -self.M
-                self.tableau[-1, self.num_vars + self.num_slack + i] = self.M 
-            self.tableau[-1, -1] = 0 
-            # if self.problem_type == 'min':
-            #     self.tableau[-1, :] *= -1 
 
-    def remove_artificial_variables(self):
-        artificial_start = self.num_vars + self.num_slack
-        artificial_end = artificial_start + self.num_artificial
-        artificial_cols = list(range(artificial_start, artificial_end))
-        self.tableau = np.delete(self.tableau, artificial_cols, axis=1)
-        self.basis = [var - self.num_artificial if var >= artificial_start else var for var in self.basis]
-        self.num_artificial = 0
+        self.temp=self.num_artificial
+        self.tableau[-1, :self.num_vars] = -self.c
+        if self.problem_type =='max' :
+         self.tableau[-1 ,self.num_vars+self.num_slack : self.num_vars+self.num_slack+self.num_artificial] = [self.M] * self.num_artificial
+        else:
+         self.tableau[-1 ,self.num_vars+self.num_slack : self.num_vars+self.num_slack+self.num_artificial] = [-self.M] * self.num_artificial
+  
+        self.basis = list(range(self.num_vars, self.num_vars + self.num_slack+self.num_artificial))
 
+ 
     def make_consistent(self):  
         self.display_tableau() 
-        for i in range(self.num_constraints):  
-            if self.constraint_types[i] in ['=', '>=']: 
-                print(f"\nSubtracting M * (Row {i+1}) from the objective function...\n")
-                self.tableau[-1, :] -= self.M * self.tableau[i, :]  
-                self.display_tableau()  
+        obj_row = self.num_artificial + self.num_slack
+        for i in range(self.num_artificial):  
+                if self.problem_type == 'max' :
+                 self.tableau[-1,] = self.tableau[-1,] - self.M*self.tableau[obj_row-i-1] 
+                else:
+                  self.tableau[-1,] = self.tableau[-1,] + self.M*self.tableau[obj_row-i-1]   
+                 
 
-    def solve_simplex(self, phase='Phase 2', is_minimization=False):
+    def solve_simplex(self):
         iteration = 0
-        print(f"\n{phase} - Iteration {iteration}:")
+        print(f"\nIteration {iteration}:")
         self.display_tableau()
         while True:
-            if is_minimization:
+            if self.problem_type == 'min':
                 if all(self.tableau[-1, :-1] <= 0):  # Minimization: all coefficients in Z-row should be <= 0
                     self.status = 'optimal'
-                    print(f"\n{phase} - Optimal solution reached.")
-                    self.optimal_solution = np.zeros(self.num_vars)
-                    for i in range(len(self.basis)):
-                        if self.basis[i] < self.num_vars:  # Only store values for decision variables
-                            self.optimal_solution[self.basis[i]] = self.tableau[i, -1] 
-                    # self.tableau[-1, :] *= -1 
-                    self.optimal_value = -self.tableau[-1, -1]  
-                    print(f"Optimal solution: {self.optimal_solution}")
-                    print(f"Optimal value: {self.optimal_value:.2f}")
+                    print(f"\nOptimal solution reached.")
                     break
             else:
                 if all(self.tableau[-1, :-1] >= 0):  # Maximization: all coefficients in Z-row should be >= 0
                     self.status = 'optimal'
-                    print(f"\n{phase} - Optimal solution reached.")
-                    self.optimal_solution = np.zeros(self.num_vars)
-                    for i in range(len(self.basis)):
-                        if self.basis[i] < self.num_vars: 
-                            self.optimal_solution[self.basis[i]] = self.tableau[i, -1]
-                    self.optimal_value = self.tableau[-1, -1]  
-                    print(f"Optimal solution: {self.optimal_solution}")
-                    print(f"Optimal value: {self.optimal_value:.2f}")
+                    print(f"\nOptimal solution reached.")
                     break
-            if is_minimization:
+
+            if self.problem_type == 'min':
                 entering_var = np.argmax(self.tableau[-1, :-1])  # Minimization: choose the most positive coefficient
             else:
                 entering_var = np.argmin(self.tableau[-1, :-1])  # Maximization: choose the most negative coefficient
-            print(f"\nEntering variable: x{entering_var + 1}, because it has the most {'positive' if is_minimization else 'negative'} coefficient {self.tableau[-1, entering_var]:.2f} in the Z-row.")
+
+            if entering_var < self.num_vars:
+                variable_type = f'x{entering_var + 1}'  # Decision variable
+            elif entering_var < self.num_vars + self.num_slack:
+                variable_type = f's{entering_var - self.num_vars + 1}'  # Slack variable
+            elif entering_var < self.num_vars + self.num_slack + self.num_artificial:
+                variable_type = f'A{entering_var - self.num_vars - self.num_slack + 1}'  # Artificial variable
+            else:
+                variable_type = f'e{entering_var - self.num_vars - self.num_slack - self.num_artificial + 1}'  # Surplus variable
+
+            
+            print(f"\nEntering variable: {variable_type}, because it has the most {'positive' if self.problem_type == 'min' else 'negative'} coefficient {self.tableau[-1, entering_var]:.2f} in the Z-row.")
+
             if all(self.tableau[:-1, entering_var] <= 0):
                 self.status = 'unbounded'
                 print("\nThe problem is unbounded.")
                 break
+
             # Select leaving variable (minimum ratio test)
             ratios = []
             for i in range(self.num_constraints):
@@ -132,7 +125,18 @@ class BigMSolver:
                 else:
                     ratios.append(np.inf)
             leaving_var = np.argmin(ratios)
-            print(f"Leaving variable: A{leaving_var + 1}, because it has the smallest ratio {ratios[leaving_var]:.2f}.")
+
+            if self.basis[leaving_var] < self.num_vars:
+                leaving_variable_type = f'x{self.basis[leaving_var] + 1}'  # Decision variable
+            elif self.basis[leaving_var] < self.num_vars + self.num_slack:
+                leaving_variable_type = f's{self.basis[leaving_var] - self.num_vars + 1}'  # Slack variable
+            elif self.basis[leaving_var] < self.num_vars + self.num_slack + self.num_artificial:
+                leaving_variable_type = f'A{self.basis[leaving_var] - self.num_vars - self.num_slack + 1}'  # Artificial variable
+            else:
+                leaving_variable_type = f'e{self.basis[leaving_var] - self.num_vars - self.num_slack - self.num_artificial + 1}'  # Surplus variable
+
+            print(f"Leaving variable: {leaving_variable_type}, because it has the smallest ratio {ratios[leaving_var]:.2f}.")
+
             # Pivot
             pivot_element = self.tableau[leaving_var, entering_var]
             print(f"\nPivot element: {pivot_element:.2f} at row {leaving_var + 1}, column {entering_var + 1}.")
@@ -144,22 +148,42 @@ class BigMSolver:
                     self.tableau[i, :] -= factor * self.tableau[leaving_var, :]
                     print(f"Subtract {factor:.2f} times row {leaving_var + 1} from row {i + 1} to eliminate the entering variable in other rows.")
             self.basis[leaving_var] = entering_var
-            print(f"Update basis: x{entering_var + 1} enters the basis, A{leaving_var + 1} leaves the basis.")
+            print(f"Update basis: {variable_type} enters the basis, {leaving_variable_type} leaves the basis.")
+
             iteration += 1
-            print(f"\n{phase} - Iteration {iteration}:")
+            print(f"\nIteration {iteration}:")
             self.display_tableau()
+
+        artificial_start = self.num_vars + self.num_slack
+        artificial_end = artificial_start + self.num_artificial
+        for i in range(self.num_slack+self.num_artificial):
+            if self.basis[i] >= artificial_start and self.basis[i] <= artificial_end :
+                if self.tableau[i,-1] != 0 :
+                    return False   
+        return True         
 
     def solve(self, display_steps=False):
         self.initialize_tableau()
+
         print("\nInitial Tableau:")
-        self.display_tableau()
+        
         self.make_consistent()  
         if display_steps:
             print("\nAfter Consistency Adjustments:")
             self.display_tableau()
-        self.solve_simplex(phase="Phase 1")  # Solve Phase 1 if artificial variables exist
-        self.remove_artificial_variables()
-        self.solve_simplex(phase="Phase 2")  # Solve Phase 2 for optimality
+
+        #self.solve_simplex()
+
+        if not self.solve_simplex():
+            self.status = 'NON-optimal'
+            print("\nNo feasible solution found beacuase Artifical variable appear in basic coloumn.")
+            return
+                
+        self.optimal_solution = np.zeros(self.num_vars)
+        for i in range(self.num_constraints):
+            if self.basis[i] < self.num_vars:
+                self.optimal_solution[self.basis[i]] = self.tableau[i, -1]
+        self.optimal_value = self.tableau[-1, -1]  
 
     def display_tableau(self):
         self.headers = ['Basic'] + [f'x{i + 1}' for i in range(self.num_vars)]
@@ -273,28 +297,20 @@ if __name__ == '__main__':
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])
 
+"""if __name__ == '__main__':
+    c = [6,4]
+    A = [[1,1], [0,1]]
+    b = [5,8]
+    constraint_types = ['<=', '>=']
+    variable_restrictions = ['non-negative', 'non-negative']
+    problem_type = 'max'
+
+    solver = BigMSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+    solver.solve(display_steps=True)
+
+    results = solver.get_results()
+    print("\nOptimal Solution:", results['optimal_solution'])
+    print("Optimal Value:", results['optimal_value'])
+    print("Status:", results['status'])"""
+
             
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-
-

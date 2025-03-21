@@ -388,7 +388,7 @@ class TwoPhaseSimplexSolver:
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])"""
 
-if __name__ == '__main__':
+"""if __name__ == '__main__':
     # Problem setup
     c = [40,10,0,0,7,14]
     A = [[1,-1,0,0,2,0], [-2,1,0,0,-2,0], [1,0,1,0,1,-1] ,[0,1,1,1,2,1]]
@@ -396,6 +396,22 @@ if __name__ == '__main__':
     constraint_types = ['=', '=' , '=' ,'=']
     variable_restrictions = ['non-negative', 'non-negative','non-negative','non-negative','non-negative','non-negative']
     problem_type = 'max'
+
+    solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+    solver.solve(display_steps=True)
+
+    results = solver.get_results()
+    print("\nOptimal Solution:", results['optimal_solution'])
+    print("Optimal Value:", results['optimal_value'])
+    print("Status:", results['status'])"""
+
+if __name__ == '__main__':
+    c = [1,2,1]
+    A = [[1,1,1], [2,-5,1]]
+    b = [7,10]
+    constraint_types = ['=', '>=']
+    variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
+    problem_type = 'min'
 
     solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
     solver.solve(display_steps=True)
