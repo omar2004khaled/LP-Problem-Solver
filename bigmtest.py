@@ -61,10 +61,13 @@ class BigMSolver:
             self.tableau[i,-1]=self.b[i]
             self.temp=self.num_artificial
             self.basis = list(range(self.num_vars, self.num_vars + self.num_slack+self.num_artificial))
-            self.tableau[-1, :self.num_vars] = -self.c if self.problem_type == 'max' else self.c 
+            self.tableau[-1, :self.num_vars] = -self.c if self.problem_type == 'max' else self.c
             for i in range(self.num_artificial):
+                # self.tableau[-1, self.num_vars + self.num_slack + i] = self.M if self.problem_type == 'max' else -self.M
                 self.tableau[-1, self.num_vars + self.num_slack + i] = self.M 
             self.tableau[-1, -1] = 0 
+            # if self.problem_type == 'min':
+            #     self.tableau[-1, :] *= -1 
 
     def remove_artificial_variables(self):
         artificial_start = self.num_vars + self.num_slack
@@ -94,8 +97,9 @@ class BigMSolver:
                     self.optimal_solution = np.zeros(self.num_vars)
                     for i in range(len(self.basis)):
                         if self.basis[i] < self.num_vars:  # Only store values for decision variables
-                            self.optimal_solution[self.basis[i]] = self.tableau[i, -1]
-                    self.optimal_value = -self.tableau[-1, -1]  # Minimization
+                            self.optimal_solution[self.basis[i]] = self.tableau[i, -1] 
+                    # self.tableau[-1, :] *= -1 
+                    self.optimal_value = -self.tableau[-1, -1]  
                     print(f"Optimal solution: {self.optimal_solution}")
                     print(f"Optimal value: {self.optimal_value:.2f}")
                     break
@@ -103,12 +107,11 @@ class BigMSolver:
                 if all(self.tableau[-1, :-1] >= 0):  # Maximization: all coefficients in Z-row should be >= 0
                     self.status = 'optimal'
                     print(f"\n{phase} - Optimal solution reached.")
-                    # Extract optimal solution
                     self.optimal_solution = np.zeros(self.num_vars)
                     for i in range(len(self.basis)):
-                        if self.basis[i] < self.num_vars:  # Only store values for decision variables
+                        if self.basis[i] < self.num_vars: 
                             self.optimal_solution[self.basis[i]] = self.tableau[i, -1]
-                    self.optimal_value = self.tableau[-1, -1]  # Maximization
+                    self.optimal_value = self.tableau[-1, -1]  
                     print(f"Optimal solution: {self.optimal_solution}")
                     print(f"Optimal value: {self.optimal_value:.2f}")
                     break
@@ -146,8 +149,6 @@ class BigMSolver:
             print(f"\n{phase} - Iteration {iteration}:")
             self.display_tableau()
 
-
-
     def solve(self, display_steps=False):
         self.initialize_tableau()
         print("\nInitial Tableau:")
@@ -159,7 +160,6 @@ class BigMSolver:
         self.solve_simplex(phase="Phase 1")  # Solve Phase 1 if artificial variables exist
         self.remove_artificial_variables()
         self.solve_simplex(phase="Phase 2")  # Solve Phase 2 for optimality
-
 
     def display_tableau(self):
         self.headers = ['Basic'] + [f'x{i + 1}' for i in range(self.num_vars)]
@@ -187,13 +187,75 @@ class BigMSolver:
             
         print(tabulate(self.tableau_rows, headers=self.headers, tablefmt='grid', floatfmt='.2f')) 
 
-
     def get_results(self):
         return {
             'optimal_solution': self.optimal_solution if self.optimal_solution is not None else "No solution found",
             'optimal_value': self.optimal_value if self.optimal_value is not None else "No value found",
             'status': self.status
         }
+
+# if __name__ == '__main__':
+#     c = [3,2,1]
+#     A = [
+#         [1,1,1],  
+#         [0,1,-1],  
+#         [1,1,2]   
+#     ]
+#     b = [4,2,6]
+#     constraint_types = ['>=','<=','=']  # All are <= constraints
+#     variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
+#     problem_type = 'min'
+
+#     solver = BigMSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+#     solver.solve(display_steps=True)
+
+#     results = solver.get_results()
+#     print("\nOptimal Solution:", results['optimal_solution'])
+#     print("Optimal Value:", results['optimal_value'])
+#     print("Status:", results['status'])
+    
+# if __name__ == '__main__':
+#     c = [2000,1500]
+#     A = [
+#         [6,2],  
+#         [2,4],  
+#         [4,12]   
+#     ]
+#     b = [8,12,24]
+#     constraint_types = ['>=','>=','>=']  # All are <= constraints
+#     variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
+#     problem_type = 'min'
+
+#     solver = BigMSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+#     solver.solve(display_steps=True)
+
+#     results = solver.get_results()
+#     print("\nOptimal Solution:", results['optimal_solution'])
+#     print("Optimal Value:", results['optimal_value'])
+#     print("Status:", results['status'])
+
+
+# if __name__ == '__main__':
+#     c = [3, 5, 4]
+#     A = [
+#         [2, 3, 0],  
+#         [0, 2, 5],  
+#         [3, 2, 4]   
+#     ]
+#     b = [8, 10, 15]
+#     constraint_types = ['<=', '<=', '<=']  # All are <= constraints
+#     variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
+#     problem_type = 'max'
+
+#     solver = BigMSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+#     solver.solve(display_steps=True)
+
+#     results = solver.get_results()
+#     print("\nOptimal Solution:", results['optimal_solution'])
+#     print("Optimal Value:", results['optimal_value'])
+#     print("Status:", results['status'])
+
+            
 
 if __name__ == '__main__':
     c = [1,2,1]
