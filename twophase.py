@@ -4,7 +4,6 @@ from tabulate import tabulate
 
 class TwoPhaseSimplexSolver:
     def __init__(self, c, A, b, constraint_types, variable_restrictions, problem_type='max', M=1e6):
-        
         self.c = np.array(c, dtype=float)
         self.A = np.array(A, dtype=float)
         self.b = np.array(b, dtype=float)
@@ -27,7 +26,6 @@ class TwoPhaseSimplexSolver:
         self.temp = 0
 
     def initialize_tableau(self):
-        
         for constraint in self.constraint_types:
             if constraint == '<=':
                 self.num_slack += 1
@@ -37,13 +35,12 @@ class TwoPhaseSimplexSolver:
             elif constraint == '=':
                 self.num_artificial += 1
 
-        total_vars = self.num_vars + self.num_slack + self.num_artificial+self.num_surplus
+        total_vars = self.num_vars + self.num_slack + self.num_artificial + self.num_surplus
         self.tableau = np.zeros((self.num_artificial + self.num_slack + 1, total_vars + 1))
 
         slack_index = self.num_vars
-        artificial_index = self.num_vars + self.num_slack 
-        surplus_index = self.num_vars + self.num_slack +self.num_artificial
-        
+        artificial_index = self.num_vars + self.num_slack
+        surplus_index = self.num_vars + self.num_slack + self.num_artificial
 
         for i in range(self.num_constraints):
             self.tableau[i, :self.num_vars] = self.A[i]
@@ -60,88 +57,95 @@ class TwoPhaseSimplexSolver:
                 artificial_index += 1
 
             self.tableau[i, -1] = self.b[i]
-        self.temp = self.num_artificial
-        self.basis = list(range(self.num_vars, self.num_vars + self.num_slack+self.num_artificial))
 
-    def phase1(self):                    #Always minmization
+        self.temp = self.num_artificial
+        self.basis = list(range(self.num_vars, self.num_vars + self.num_slack + self.num_artificial))
+
+    def phase1(self, file):
+        # Phase 1: Minimize the sum of artificial variables
         phase1_obj = np.zeros(self.tableau.shape[1])
         artificial_start = self.num_vars + self.num_slack
         artificial_end = artificial_start + self.num_artificial
-        
+
         for i in range(artificial_start, artificial_end):
-            phase1_obj[i] = -1 
-    
+            phase1_obj[i] = -1  # Coefficients for artificial variables in Phase 1 objective
+
         self.tableau[-1, :] = phase1_obj
-        
-        self.make_consistent()
-        self.solve_simplex(phase='Phase 1')
-        
-        for i in range(self.num_slack+self.num_artificial):
-            if self.basis[i] >= artificial_start and self.basis[i] <= artificial_end :
-                if self.tableau[i,-1] != 0 :
-                    return False
-        
+
+        file.write("\nPhase 1: Initial Tableau\n")
+        self.display_tableau(file)
+
+        self.make_consistent(file)
+        file.write("\nPhase 1: After Consistency Adjustments\n")
+        self.display_tableau(file)
+
+        self.solve_simplex(phase='Phase 1', file=file)
+
+        # Check if any artificial variables remain in the basis
+        for i in range(self.num_slack + self.num_artificial):
+            if self.basis[i] >= artificial_start and self.basis[i] <= artificial_end:
+                if self.tableau[i, -1] != 0:
+                    return False  # No feasible solution
+
         self.remove_artificial_variables()
-        self.update_z_row_for_phase2()
+        self.update_z_row_for_phase2(file)
         return True
 
     def remove_artificial_variables(self):
-        """artificial_start = self.num_vars + self.num_slack
-        artificial_end = artificial_start + self.num_artificial
-        artificial_cols = list(range(artificial_start, artificial_end))
-        self.tableau = np.delete(self.tableau, artificial_cols, axis=1)
-        self.basis = [var - self.num_artificial if var >= artificial_start else var for var in self.basis]
-        self.num_artificial = 0"""
         artificial_start = self.num_vars + self.num_slack
         artificial_end = artificial_start + self.num_artificial
         artificial_cols = [col for col in range(artificial_start, artificial_end) if col not in self.basis]
 
-        if artificial_cols:  
+        if artificial_cols:
             self.tableau = np.delete(self.tableau, artificial_cols, axis=1)
 
         self.basis = [var - sum(1 for col in artificial_cols if col < var) if var >= artificial_start else var for var in self.basis]
 
         self.num_artificial -= len(artificial_cols)
 
-    def update_z_row_for_phase2(self):
-        self.tableau[-1, :self.num_vars] = -self.c 
-        print('Due to inconsistency :')
-        self.make_consistent2()
+    def update_z_row_for_phase2(self, file):
+        self.tableau[-1, :self.num_vars] = -self.c
+        file.write("\nPhase 2: Updated Z-row for Original Objective\n")
+        self.display_tableau(file)
+        self.make_consistent2(file)
 
-    def make_consistent(self):  
-            obj_row = self.num_artificial + self.num_slack
-            for i in range(self.num_artificial):
-              self.tableau[-1,] = self.tableau[-1,] + 1*self.tableau[obj_row-i-1]    
+    def make_consistent(self, file):
+        obj_row = self.num_artificial + self.num_slack
+        for i in range(self.num_artificial):
+            self.tableau[-1, :] = self.tableau[-1, :] + 1 * self.tableau[obj_row - i - 1, :]
+        file.write("\nPhase 1: Consistency Adjustments Applied\n")
 
-    def make_consistent2(self) :
+    def make_consistent2(self, file):
         for i in range(self.temp + self.num_slack):
-            basic_var = self.basis[i]  # Get the basic variable index
-            coeff_in_obj = self.tableau[-1, basic_var]  # Get its coefficient in the objective function
+            basic_var = self.basis[i]
+            coeff_in_obj = self.tableau[-1, basic_var]
 
-            if coeff_in_obj != 0:  # If the variable appears in Z with a nonzero coefficient
+            if coeff_in_obj != 0:
                 self.tableau[-1, :] -= coeff_in_obj * self.tableau[i, :]
+        file.write("\nPhase 2: Consistency Adjustments Applied\n")
 
-    def solve_simplex(self, phase):
+    def solve_simplex(self, phase, file):
         iteration = 0
 
         if phase == 'Phase 1':
             problemtype = 'min'
         else:
-            problemtype = self.problem_type      
+            problemtype = self.problem_type
 
-        print(f"\n{phase} - Iteration {iteration}:")
-        self.display_tableau()
+        file.write(f"\n{phase} - Iteration {iteration}:\n")
+        self.display_tableau(file)
 
         while True:
-            
             if problemtype == 'min':
                 if all(self.tableau[-1, :-1] <= 0):  # Minimization: all coefficients in Z-row should be <= 0
                     self.status = 'optimal'
+                    file.write(f"\n{phase} - Optimal solution reached.\n")
                     print(f"\n{phase} - Optimal solution reached.")
                     break
             else:
                 if all(self.tableau[-1, :-1] >= 0):  # Maximization: all coefficients in Z-row should be >= 0
                     self.status = 'optimal'
+                    file.write(f"\n{phase} - Optimal solution reached.\n")
                     print(f"\n{phase} - Optimal solution reached.")
                     break
 
@@ -150,7 +154,7 @@ class TwoPhaseSimplexSolver:
                 entering_var = np.argmax(self.tableau[-1, :-1])  # Minimization: choose the most positive coefficient
             else:
                 entering_var = np.argmin(self.tableau[-1, :-1])  # Maximization: choose the most negative coefficient
-            
+
             # Determine the variable type
             if entering_var < self.num_vars:
                 variable_type = f'x{entering_var + 1}'  # Decision variable
@@ -161,15 +165,17 @@ class TwoPhaseSimplexSolver:
             else:
                 variable_type = f'e{entering_var - self.num_vars - self.num_slack - self.num_artificial + 1}'  # Surplus variable
 
+            file.write(f"\nEntering variable: {variable_type}, because it has the most {'positive' if problemtype == 'min' else 'negative'} coefficient {self.tableau[-1, entering_var]:.2f} in the Z-row.\n")
             print(f"\nEntering variable: {variable_type}, because it has the most {'positive' if problemtype == 'min' else 'negative'} coefficient {self.tableau[-1, entering_var]:.2f} in the Z-row.")
 
             # Check for unboundedness
             if all(self.tableau[:-1, entering_var] <= 0):
                 self.status = 'unbounded'
+                file.write("\nThe problem is unbounded.\n")
                 print("\nThe problem is unbounded.")
                 break
 
-           
+            # Select leaving variable (minimum ratio test)
             ratios = []
             for i in range(self.num_constraints):
                 if self.tableau[i, entering_var] > 0:
@@ -188,51 +194,61 @@ class TwoPhaseSimplexSolver:
             else:
                 leaving_variable_type = f'e{self.basis[leaving_var] - self.num_vars - self.num_slack - self.num_artificial + 1}'  # Surplus variable
 
+            file.write(f"Leaving variable: {leaving_variable_type}, because it has the smallest ratio {ratios[leaving_var]:.2f}.\n")
             print(f"Leaving variable: {leaving_variable_type}, because it has the smallest ratio {ratios[leaving_var]:.2f}.")
 
             # Pivot
             pivot_element = self.tableau[leaving_var, entering_var]
+            file.write(f"\nPivot element: {pivot_element:.2f} at row {leaving_var + 1}, column {entering_var + 1}.\n")
+            file.write(f"Divide row {leaving_var + 1} by {pivot_element:.2f} to make the pivot element 1.\n")
             print(f"\nPivot element: {pivot_element:.2f} at row {leaving_var + 1}, column {entering_var + 1}.")
-            self.tableau[leaving_var, :] /= pivot_element
             print(f"Divide row {leaving_var + 1} by {pivot_element:.2f} to make the pivot element 1.")
+            self.tableau[leaving_var, :] /= pivot_element
             for i in range(self.num_constraints + 1):
                 if i != leaving_var:
                     factor = self.tableau[i, entering_var]
                     self.tableau[i, :] -= factor * self.tableau[leaving_var, :]
+                    file.write(f"Subtract {factor:.2f} times row {leaving_var + 1} from row {i + 1} to eliminate the entering variable in other rows.\n")
                     print(f"Subtract {factor:.2f} times row {leaving_var + 1} from row {i + 1} to eliminate the entering variable in other rows.")
 
             # Update basis
             self.basis[leaving_var] = entering_var
+            file.write(f"Update basis: {variable_type} enters the basis, {leaving_variable_type} leaves the basis.\n")
             print(f"Update basis: {variable_type} enters the basis, {leaving_variable_type} leaves the basis.")
 
             iteration += 1
-
-            # Display the updated tableau
+            file.write(f"\n{phase} - Iteration {iteration}:\n")
+            self.display_tableau(file)
             print(f"\n{phase} - Iteration {iteration}:")
             self.display_tableau()
 
     def solve(self, display_steps=False):
         self.initialize_tableau()
 
-        # Phase 1
-        if not self.phase1():
-            self.status = 'NON-optimal'
-            print("\nPhase 1 - No feasible solution found beacuase Artifical variable appear in basic coloumn.")
-            return
+        with open('twophase.txt', 'w') as file:
+            # Phase 1
+            if not self.phase1(file):
+                self.status = 'NON-optimal'
+                file.write("\nPhase 1 - No feasible solution found because Artificial variable appears in the basic column.\n")
+                print("\nPhase 1 - No feasible solution found because Artificial variable appears in the basic column.")
+                return
 
-        # Phase 2
-        self.solve_simplex(phase='Phase 2')
+            # Phase 2
+            self.solve_simplex(phase='Phase 2', file=file)
 
-        # Extract solution
-        self.optimal_solution = np.zeros(self.num_vars)
-        for i in range(self.num_constraints):
-            if self.basis[i] < self.num_vars:
-                self.optimal_solution[self.basis[i]] = self.tableau[i, -1]
-        self.optimal_value = self.tableau[-1, -1]
+            # Extract solution
+            self.optimal_solution = np.zeros(self.num_vars)
+            for i in range(self.num_constraints):
+                if self.basis[i] < self.num_vars:
+                    self.optimal_solution[self.basis[i]] = self.tableau[i, -1]
+            self.optimal_value = self.tableau[-1, -1]
 
-        
+            file.write("\nFinal Results:\n")
+            file.write(f"Optimal Solution: {self.optimal_solution}\n")
+            file.write(f"Optimal Value: {self.optimal_value}\n")
+            file.write(f"Status: {self.status}\n")
 
-    def display_tableau(self):
+    def display_tableau(self, file=None):
         self.headers = ['Basic'] + [f'x{i + 1}' for i in range(self.num_vars)]
         self.headers += [f's{i + 1}' for i in range(self.num_slack)]
         self.headers += [f'A{i + 1}' for i in range(self.num_artificial)]
@@ -240,34 +256,51 @@ class TwoPhaseSimplexSolver:
         self.headers.append('RHS')
 
         self.tableau_rows = []
-        for i in range(self.num_slack+self.temp):
+        for i in range(self.num_slack + self.temp):
             if self.basis[i] < self.num_vars:
-                basic_var = f'x{self.basis[i] + 1}'  
+                basic_var = f'x{self.basis[i] + 1}'
             elif self.basis[i] < self.num_vars + self.num_slack:
-                basic_var = f's{self.basis[i] - self.num_vars + 1}'  
+                basic_var = f's{self.basis[i] - self.num_vars + 1}'
             elif self.basis[i] < self.num_vars + self.num_slack + self.num_artificial:
-                basic_var = f'A{self.basis[i] - self.num_vars - self.num_slack + 1}'  
+                basic_var = f'A{self.basis[i] - self.num_vars - self.num_slack + 1}'
             else:
-                basic_var = f'e{self.basis[i] - self.num_vars - self.num_slack - self.num_artificial + 1}'  
+                basic_var = f'e{self.basis[i] - self.num_vars - self.num_slack - self.num_artificial + 1}'
 
             row = [basic_var] + list(self.tableau[i, :])
-            self.tableau_rows.append(row)    
+            self.tableau_rows.append(row)
 
         objective_row = ['Z'] + list(self.tableau[-1, :])
         self.tableau_rows.append(objective_row)
-            
-        print(tabulate(self.tableau_rows, headers=self.headers, tablefmt='grid', floatfmt='.2f'))   
-        
+
+        tableau_str = tabulate(self.tableau_rows, headers=self.headers, tablefmt='grid', floatfmt='.2f')
+        if file:
+            file.write(tableau_str + '\n')
+        else:
+            print(tableau_str)
 
     def get_results(self):
         return {
-            'optimal_solution': self.optimal_solution,
-            'optimal_value': self.optimal_value,
+            'optimal_solution': self.optimal_solution if self.optimal_solution is not None else "No solution found",
+            'optimal_value': self.optimal_value if self.optimal_value is not None else "No value found",
             'status': self.status
         }
 
+if __name__ == '__main__':
+    c = [1, 2, 1]
+    A = [[1, 1, 1], [2, -5, 1]]
+    b = [7, 10]
+    constraint_types = ['=', '>=']
+    variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
+    problem_type = 'min'
 
-"""if __name__ == '__main__':
+    solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+    solver.solve(display_steps=True)
+
+    results = solver.get_results()
+    print("\nOptimal Solution:", results['optimal_solution'])
+    print("Optimal Value:", results['optimal_value'])
+    print("Status:", results['status'])
+    """if __name__ == '__main__':
     # Problem setup
     c = [1,2,1]
     A = [[1,1,1], [2,-5,1]]
@@ -405,19 +438,4 @@ class TwoPhaseSimplexSolver:
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])"""
 
-if __name__ == '__main__':
-    c = [1,2,1]
-    A = [[1,1,1], [2,-5,1]]
-    b = [7,10]
-    constraint_types = ['=', '>=']
-    variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
-    problem_type = 'min'
-
-    solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
-    solver.solve(display_steps=True)
-
-    results = solver.get_results()
-    print("\nOptimal Solution:", results['optimal_solution'])
-    print("Optimal Value:", results['optimal_value'])
-    print("Status:", results['status'])
      

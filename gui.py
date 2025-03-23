@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, filedialog
+from tkinter import messagebox, filedialog, scrolledtext
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from simplex import SimplexSolver  # Import SimplexSolver from simplex.py
@@ -144,10 +144,13 @@ class LPApp:
             # Solve using the selected method
             if self.method_var.get() == "simplex":
                 solver = SimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+                steps_file = "simplex.txt"
             elif self.method_var.get() == "bigm":
                 solver = BigMSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+                steps_file = "bigmtest.txt"
             elif self.method_var.get() == "two_phase":
                 solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+                steps_file = "twophase.txt"
 
             solver.solve(display_steps=True)
             results = solver.get_results()
@@ -155,19 +158,30 @@ class LPApp:
             # Display results
             messagebox.showinfo("Results", f"Optimal Solution: {results['optimal_solution']}\nOptimal Value: {results['optimal_value']}\nStatus: {results['status']}")
 
-            # Save steps to a file
-            file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt")])
-            if file_path:
-                with open(file_path, "w") as f:
-                    f.write(f"Optimal Solution: {results['optimal_solution']}\n")
-                    f.write(f"Optimal Value: {results['optimal_value']}\n")
-                    f.write(f"Status: {results['status']}\n")
-                    f.write("\nSteps:\n")
-                    for i in range(solver.num_constraints + 1):
-                        f.write(tabulate(solver.tableau, headers=[f'x{j+1}' for j in range(solver.num_vars)] + [f's{j+1}' for j in range(solver.tableau.shape[1] - solver.num_vars - 1)] + ['RHS'], tablefmt='grid', floatfmt='.2f') + "\n")
+            # Read and display steps from the file
+            self.display_steps(steps_file)
 
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+    def display_steps(self, steps_file):
+        try:
+            with open(steps_file, "r") as f:
+                steps = f.read()
+
+            # Create a new window to display steps
+            steps_window = ttk.Toplevel(self.root)
+            steps_window.title("Steps")
+            steps_window.geometry("800x600")
+
+            # Add a scrolled text widget to display steps
+            text_area = scrolledtext.ScrolledText(steps_window, wrap=tk.WORD, width=100, height=30)
+            text_area.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            text_area.insert(tk.INSERT, steps)
+            text_area.configure(state="disabled")  # Make the text area read-only
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to read steps from {steps_file}: {str(e)}")
 
     def create_page2_widgets(self):
         # Input section for Goal Programming
@@ -300,16 +314,8 @@ class LPApp:
             # Display results
             messagebox.showinfo("Results", f"Optimal Solution: {results['optimal_solution']}\nOptimal Value: {results['optimal_value']}\nStatus: {results['status']}")
 
-            # Save steps to a file
-            file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt")])
-            if file_path:
-                with open(file_path, "w") as f:
-                    f.write(f"Optimal Solution: {results['optimal_solution']}\n")
-                    f.write(f"Optimal Value: {results['optimal_value']}\n")
-                    f.write(f"Status: {results['status']}\n")
-                    f.write("\nSteps:\n")
-                    for i in range(solver.num_constraints + 1):
-                        f.write(tabulate(solver.tableau, headers=[f'x{j+1}' for j in range(solver.num_vars)] + [f's{j+1}' for j in range(solver.tableau.shape[1] - solver.num_vars - 1)] + ['RHS'], tablefmt='grid', floatfmt='.2f') + "\n")
+            # Read and display steps from the file
+            self.display_steps("Goal.txt")
 
         except Exception as e:
             messagebox.showerror("Error", str(e))
