@@ -76,6 +76,8 @@ class BigMSolver:
 
     def solve_simplex(self, file):
         iteration = 0
+        print(f"\nIteration {iteration}:")
+        self.display_tableau()
         file.write(f"\nIteration {iteration}:\n")
         self.display_tableau(file)
         while True:
@@ -159,12 +161,19 @@ class BigMSolver:
             print(f"\nIteration {iteration}:")
             self.display_tableau()
 
-        artificial_start = self.num_vars + self.num_slack
+        """artificial_start = self.num_vars + self.num_slack
         artificial_end = artificial_start + self.num_artificial
         for i in range(self.num_slack + self.num_artificial):
             if self.basis[i] >= artificial_start and self.basis[i] <= artificial_end:
                 if self.tableau[i, -1] != 0:
                     return False
+        return True"""
+        artificial_start = self.num_vars + self.num_slack
+        artificial_end = artificial_start + self.num_artificial
+        for i in range(len(self.basis)):  # Iterate over all basis elements
+         if artificial_start <= self.basis[i] < artificial_end:
+          if self.tableau[i, -1] != 0:  # Check if the RHS is nonzero
+            return False
         return True
 
     def solve(self, display_steps=False):
@@ -232,7 +241,7 @@ class BigMSolver:
             'status': self.status
         }
 
-if __name__ == '__main__':
+"""if __name__ == '__main__':
     c = [1, 2, 1]
     A = [[1, 1, 1], [2, -5, 1]]
     b = [7, 10]
@@ -246,7 +255,7 @@ if __name__ == '__main__':
     results = solver.get_results()
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
-    print("Status:", results['status'])
+    print("Status:", results['status'])"""
 
 
 # if __name__ == '__main__':
@@ -343,5 +352,21 @@ if __name__ == '__main__':
 #     print("\nOptimal Solution:", results['optimal_solution'])
 #     print("Optimal Value:", results['optimal_value'])
 #     print("Status:", results['status'])
+if __name__ == '__main__':
+    # Problem setup
+    c = [3, 2,1]
+    A = [[0,1, -1],[1, 1, 2]]
+    b = [4, 2]
+    constraint_types = ['<=','=']
+    variable_restrictions = ['non-negative', 'non-negative','non-negative']
+    problem_type = 'min'
+
+    solver = BigMSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+    solver.solve(display_steps=True)
+
+    results = solver.get_results()
+    print("\nOptimal Solution:", results['optimal_solution'])
+    print("Optimal Value:", results['optimal_value'])
+    print("Status:", results['status'])
 
             
