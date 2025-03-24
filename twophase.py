@@ -44,9 +44,9 @@ class TwoPhaseSimplexSolver:
             if self.constraint_types[i] == '<=':
                 slack_rows.append(i)               
             elif self.constraint_types[i] == '>=':
-                artificial_rows.append(i)
-            elif self.constraint_types[i] == '=':
                 artificial_with_surplus_rows.append(i)
+            elif self.constraint_types[i] == '=':
+                artificial_rows.append(i)
                             
         
         total_vars = self.num_vars + self.num_slack + self.num_artificial + self.num_surplus
@@ -323,13 +323,12 @@ class TwoPhaseSimplexSolver:
         }
 
 if __name__ == '__main__':
-    c = [1, 2, 1]
-    A = [[1, 1, 1], [2, -5, 1] , [1,1,1]]
-    b = [7, 10 ,15]
-    constraint_types = ['=','<=','<=']
-    variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
+    c = [2, 3]
+    A = [[0.5, 0.25], [1, 3], [1, 1]]
+    b = [4, 36, 10]
+    constraint_types = ['<=', '>=', '=']
+    variable_restrictions = ['non-negative', 'non-negative']
     problem_type = 'min'
-
     solver = TwoPhaseSimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
     solver.solve(display_steps=True)
 

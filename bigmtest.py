@@ -43,9 +43,9 @@ class BigMSolver:
             if self.constraint_types[i] == '<=':
                 slack_rows.append(i)               
             elif self.constraint_types[i] == '>=':
-                artificial_rows.append(i)
+                artificial_with_surplus_rows.append(i)
             elif self.constraint_types[i] == '=':
-                artificial_with_surplus_rows.append(i)        
+                artificial_rows.append(i)       
         
         total_vars = self.num_vars + self.num_slack + self.num_artificial + self.num_surplus
         self.tableau = np.zeros((self.num_artificial + self.num_slack + 1, total_vars + 1))
