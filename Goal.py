@@ -24,9 +24,10 @@ class GoalSolver:
         self.headers = None
         self.tableau_rows = None
         self.goal_status = None
+        
 
     def initialize_tableau(self):
-        num_deviation = 0
+        """num_deviation = 0
         for i in range(self.num_constraints):
             if self.constraint_types[i] == '<=':
                 self.num_slack += 1
@@ -56,7 +57,51 @@ class GoalSolver:
             goal_row = self.num_constraints + i
             self.tableau[goal_row, self.num_vars + self.num_slack + i] = -self.priority[i]
 
-        self.basis = list(range(self.num_vars, self.num_vars + self.num_goals + self.num_slack))
+        self.basis = list(range(self.num_vars, self.num_vars + self.num_goals + self.num_slack))"""
+        num_deviation = 0
+        slack_rows = []
+        deviation_rows = []
+        other_rows = []
+
+        # Separate the constraints based on their types
+
+        for i in range(self.num_constraints):
+            if self.constraint_types[i] == '<=':
+                slack_rows.append(i)                #index [2]
+            elif self.constraint_types[i] == '>=':
+                deviation_rows.append(i)
+                num_deviation+=1            #index [0,1,3]
+            else:
+                other_rows.append(i)  # In case there are other types
+
+        total_vars = self.num_vars + 2 * num_deviation + len(slack_rows)
+        self.tableau = np.zeros((self.num_constraints + self.num_goals, total_vars + 1))
+
+        slack_index = self.num_vars
+        deviation_index = self.num_vars + len(slack_rows)
+        index = 0
+        # Fill the tableau in the order of slack variables first
+        for i in slack_rows:
+            self.tableau[index, :self.num_vars] = self.A[i]
+            self.tableau[index, slack_index] = 1  # Slack variable
+            slack_index += 1
+            self.tableau[index, -1] = self.b[i]
+            index+=1
+
+        for i in deviation_rows:
+            self.tableau[index, :self.num_vars] = self.A[i]
+            self.tableau[index, deviation_index] = 1  # d-
+            self.tableau[index, deviation_index + self.num_goals] = -1  # d+
+            deviation_index += 1
+            self.tableau[index, -1] = self.b[i]
+            index+=1
+
+        # Fill in the goal rows
+        for i in range(self.num_goals):
+            goal_row = self.num_constraints + i
+            self.tableau[goal_row, self.num_vars + len(slack_rows) + i] = -self.priority[i]
+
+        self.basis = list(range(self.num_vars, self.num_vars + self.num_goals + len(slack_rows)))
 
     def display_tableau(self, file=None):
         self.headers = ['Basic'] + [f'x{i + 1}' for i in range(self.num_vars)]
@@ -113,6 +158,7 @@ class GoalSolver:
             if display_steps:
                 file.write(f"\nIteration {iteration} for goal {index + 1} of priority = {priority_level}:\n")
                 self.display_tableau(file)
+                self.display_tableau()
 
             # Check for optimality
             if all(self.tableau[self.num_constraints + index, :-1] <= 0):
@@ -233,15 +279,15 @@ if __name__ == '__main__':
     # Example Goal Programming Problem
     c = [5, -4]
     A = [
-        [1.5, 3],
+        [100,400],
         [200, 0],
-        [100, 400],
+        [1.5,3],
         [0, 250]
     ]
-    b = [15, 1000, 1200, 800]
+    b = [1200, 1000, 15, 800]
     goals = [30, 15, 100]
     priority = [1, 2, 1]
-    constraint_types = ['<=', '>=', '>=', '>=']
+    constraint_types = ['>=', '>=', '<=', '>=']
     variable_restrictions = ['non-negative', 'non-negative']
 
     solver = GoalSolver(c, A, b, goals, priority, constraint_types, variable_restrictions)

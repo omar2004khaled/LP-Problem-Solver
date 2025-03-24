@@ -26,6 +26,10 @@ class BigMSolver:
         self.temp = 0
 
     def initialize_tableau(self):
+        slack_rows = []
+        artificial_rows = []
+        artificial_with_surplus_rows =[]
+
         for constraint in self.constraint_types:
             if constraint == '<=':
                 self.num_slack += 1
@@ -34,14 +38,24 @@ class BigMSolver:
                 self.num_artificial += 1
             elif constraint == '=':
                 self.num_artificial += 1
+
+        for i in range(self.num_constraints):
+            if self.constraint_types[i] == '<=':
+                slack_rows.append(i)               
+            elif self.constraint_types[i] == '>=':
+                artificial_rows.append(i)
+            elif self.constraint_types[i] == '=':
+                artificial_with_surplus_rows.append(i)        
         
         total_vars = self.num_vars + self.num_slack + self.num_artificial + self.num_surplus
         self.tableau = np.zeros((self.num_artificial + self.num_slack + 1, total_vars + 1))
+        
         slack_index = self.num_vars
         artificial_index = self.num_vars + self.num_slack
         surplus_index = self.num_vars + self.num_slack + self.num_artificial
+        index=0
 
-        for i in range(self.num_constraints):
+        """for i in range(self.num_constraints):
             self.tableau[i, :self.num_vars] = self.A[i]
             if self.constraint_types[i] == '<=':
                 self.tableau[i, slack_index] = 1
@@ -54,7 +68,28 @@ class BigMSolver:
             elif self.constraint_types[i] == '=':
                 self.tableau[i, artificial_index] = +1
                 artificial_index += 1
-            self.tableau[i, -1] = self.b[i]
+            self.tableau[i, -1] = self.b[i]"""
+        
+        for i in slack_rows:
+            self.tableau[index, :self.num_vars] = self.A[i]
+            self.tableau[index, slack_index] = 1  # Slack variable
+            slack_index += 1
+            self.tableau[index, -1] = self.b[i]
+            index+=1
+        for i in artificial_rows:
+            self.tableau[index, :self.num_vars] = self.A[i]
+            self.tableau[index, artificial_index] = 1  # Artificial variable
+            self.tableau[index, -1] = self.b[i]
+            artificial_index += 1
+            index+=1  
+        for i in artificial_with_surplus_rows:
+            self.tableau[index, :self.num_vars] = self.A[i]
+            self.tableau[index , surplus_index] = -1
+            self.tableau[index, artificial_index] = 1
+            self.tableau[index, -1] = self.b[i]
+            surplus_index += 1
+            artificial_index += 1
+            index+=1      
 
         self.temp = self.num_artificial
         self.tableau[-1, :self.num_vars] = -self.c
