@@ -1,74 +1,55 @@
 
 Iteration 0:
-+---------+-------+-------+-------+-------+------+------+--------+
-| Basic   |    x1 |    x2 |    x3 |    x4 |   s1 |   s2 |    RHS |
-+=========+=======+=======+=======+=======+======+======+========+
-| s1      |  0.25 |  0.20 | -1.00 |  1.00 | 1.00 | 0.00 | 200.00 |
-+---------+-------+-------+-------+-------+------+------+--------+
-| s2      |  1.00 |  1.00 |  0.00 | -0.00 | 0.00 | 1.00 | 900.00 |
-+---------+-------+-------+-------+-------+------+------+--------+
-| Z       | -0.20 | -0.15 |  0.25 | -0.25 | 0.00 | 0.00 |   0.00 |
-+---------+-------+-------+-------+-------+------+------+--------+
-Entering variable: x4, because it has the most negative coefficient -0.25 in the Z-row.
-Leaving variable: s1, because it has the smallest ratio 200.00.
++---------+-------+--------+--------+------+------+-------+
+| Basic   |   x1' |   x1'' |     x2 |   s1 |   s2 |   RHS |
++=========+=======+========+========+======+======+=======+
+| s1      | -1.00 |   1.00 |   5.00 | 1.00 | 0.00 | 30.00 |
++---------+-------+--------+--------+------+------+-------+
+| s2      |  0.00 |  -0.00 |   1.00 | 0.00 | 1.00 |  5.00 |
++---------+-------+--------+--------+------+------+-------+
+| Z       |  4.00 |  -4.00 | -30.00 | 0.00 | 0.00 |  0.00 |
++---------+-------+--------+--------+------+------+-------+
+Entering variable: x2, because it has the most negative coefficient -30.00 in the Z-row.
+Leaving variable: s2, because it has the smallest ratio 5.00.
 
-Pivot element: 1.00 at row 1, column 4.
-Divide row 1 by 1.00 to make the pivot element 1.
-Subtract -0.00 times row 1 from row 2 to eliminate the entering variable in other rows.
-Subtract -0.25 times row 1 from row 3 to eliminate the entering variable in other rows.
-Update basis: x4 enters the basis, s1 leaves the basis.
+Pivot element: 1.00 at row 2, column 3.
+Divide row 2 by 1.00 to make the pivot element 1.
+Subtract 5.00 times row 2 from row 1 to eliminate the entering variable in other rows.
+Subtract -30.00 times row 2 from row 3 to eliminate the entering variable in other rows.
+Update basis: x2 enters the basis, s2 leaves the basis.
 
 Iteration 1:
-+---------+-------+-------+-------+------+------+------+--------+
-| Basic   |    x1 |    x2 |    x3 |   x4 |   s1 |   s2 |    RHS |
-+=========+=======+=======+=======+======+======+======+========+
-| x4      |  0.25 |  0.20 | -1.00 | 1.00 | 1.00 | 0.00 | 200.00 |
-+---------+-------+-------+-------+------+------+------+--------+
-| s2      |  1.00 |  1.00 |  0.00 | 0.00 | 0.00 | 1.00 | 900.00 |
-+---------+-------+-------+-------+------+------+------+--------+
-| Z       | -0.14 | -0.10 |  0.00 | 0.00 | 0.25 | 0.00 |  50.00 |
-+---------+-------+-------+-------+------+------+------+--------+
-Entering variable: x1, because it has the most negative coefficient -0.14 in the Z-row.
-Leaving variable: s1, because it has the smallest ratio 800.00.
++---------+-------+--------+------+------+-------+--------+
+| Basic   |   x1' |   x1'' |   x2 |   s1 |    s2 |    RHS |
++=========+=======+========+======+======+=======+========+
+| s1      | -1.00 |   1.00 | 0.00 | 1.00 | -5.00 |   5.00 |
++---------+-------+--------+------+------+-------+--------+
+| x2      |  0.00 |  -0.00 | 1.00 | 0.00 |  1.00 |   5.00 |
++---------+-------+--------+------+------+-------+--------+
+| Z       |  4.00 |  -4.00 | 0.00 | 0.00 | 30.00 | 150.00 |
++---------+-------+--------+------+------+-------+--------+
+Entering variable: x1'', because it has the most negative coefficient -4.00 in the Z-row.
+Leaving variable: s1, because it has the smallest ratio 5.00.
 
-Pivot element: 0.25 at row 1, column 1.
-Divide row 1 by 0.25 to make the pivot element 1.
-Subtract 1.00 times row 1 from row 2 to eliminate the entering variable in other rows.
-Subtract -0.14 times row 1 from row 3 to eliminate the entering variable in other rows.
-Update basis: x1 enters the basis, s1 leaves the basis.
+Pivot element: 1.00 at row 1, column 2.
+Divide row 1 by 1.00 to make the pivot element 1.
+Subtract -0.00 times row 1 from row 2 to eliminate the entering variable in other rows.
+Subtract -4.00 times row 1 from row 3 to eliminate the entering variable in other rows.
+Update basis: x1'' enters the basis, s1 leaves the basis.
 
 Iteration 2:
-+---------+------+------+-------+-------+-------+------+--------+
-| Basic   |   x1 |   x2 |    x3 |    x4 |    s1 |   s2 |    RHS |
-+=========+======+======+=======+=======+=======+======+========+
-| x1      | 1.00 | 0.80 | -4.00 |  4.00 |  4.00 | 0.00 | 800.00 |
-+---------+------+------+-------+-------+-------+------+--------+
-| s2      | 0.00 | 0.20 |  4.00 | -4.00 | -4.00 | 1.00 | 100.00 |
-+---------+------+------+-------+-------+-------+------+--------+
-| Z       | 0.00 | 0.01 | -0.55 |  0.55 |  0.80 | 0.00 | 160.00 |
-+---------+------+------+-------+-------+-------+------+--------+
-Entering variable: x3, because it has the most negative coefficient -0.55 in the Z-row.
-Leaving variable: s2, because it has the smallest ratio 25.00.
-
-Pivot element: 4.00 at row 2, column 3.
-Divide row 2 by 4.00 to make the pivot element 1.
-Subtract -4.00 times row 2 from row 1 to eliminate the entering variable in other rows.
-Subtract -0.55 times row 2 from row 3 to eliminate the entering variable in other rows.
-Update basis: x3 enters the basis, s2 leaves the basis.
-
-Iteration 3:
-+---------+------+------+------+-------+-------+------+--------+
-| Basic   |   x1 |   x2 |   x3 |    x4 |    s1 |   s2 |    RHS |
-+=========+======+======+======+=======+=======+======+========+
-| x1      | 1.00 | 1.00 | 0.00 |  0.00 |  0.00 | 1.00 | 900.00 |
-+---------+------+------+------+-------+-------+------+--------+
-| x3      | 0.00 | 0.05 | 1.00 | -1.00 | -1.00 | 0.25 |  25.00 |
-+---------+------+------+------+-------+-------+------+--------+
-| Z       | 0.00 | 0.04 | 0.00 |  0.00 |  0.25 | 0.14 | 173.75 |
-+---------+------+------+------+-------+-------+------+--------+
++---------+-------+--------+------+------+-------+--------+
+| Basic   |   x1' |   x1'' |   x2 |   s1 |    s2 |    RHS |
++=========+=======+========+======+======+=======+========+
+| x1''    | -1.00 |   1.00 | 0.00 | 1.00 | -5.00 |   5.00 |
++---------+-------+--------+------+------+-------+--------+
+| x2      |  0.00 |   0.00 | 1.00 | 0.00 |  1.00 |   5.00 |
++---------+-------+--------+------+------+-------+--------+
+| Z       |  0.00 |   0.00 | 0.00 | 4.00 | 10.00 | 170.00 |
++---------+-------+--------+------+------+-------+--------+
 Optimal solution reached.
 
 Final Results:
-Optimal Solution: [900.   0.  25.]
-Optimal Value: 173.75
+Optimal Solution: [-5.  5.]
+Optimal Value: 170.0
 Status: optimal

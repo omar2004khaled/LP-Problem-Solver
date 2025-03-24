@@ -86,7 +86,7 @@ class SimplexSolver:
 
         # Initialize the tableau
         total_vars = self.num_vars + slack_vars + artificial_vars
-        self.tableau = np.zeros((self.num_constraints + 1, total_vars + 1))
+        self.tableau = np.zeros((self.num_constraints + 1, total_vars +1))
 
         # Fill the tableau with constraint coefficients
         slack_index = self.num_vars
@@ -112,12 +112,29 @@ class SimplexSolver:
         # Initialize basis
         self.basis = list(range(self.num_vars, total_vars))
 
-    def solve(self, display_steps=False):
-        """
-        Solve the LP problem using the Simplex method.
+    def get_variable_name(self, index):
+        """ Returns the correct name for variables, accounting for unrestricted variables. """
+        adjusted_index = 0  # Adjusted index for correct x numbering
         
-        :param display_steps: If True, display the tableau at each iteration in a fancy way.
-        """
+        for i in range(len(self.variable_restrictions)):
+            if self.variable_restrictions[i] == 'unrestricted':
+                pos_idx, neg_idx = self.unrestricted_map[i]
+                if index == pos_idx:
+                    return f"x{i + 1}'"
+                elif index == neg_idx:
+                    return f"x{i + 1}''"
+                # Since unrestricted variables take two indices, increase the counter accordingly
+                adjusted_index += 2
+            else:
+                if adjusted_index == index:
+                    return f"x{i + 1}"
+                adjusted_index += 1
+
+        # If it's a slack variable
+        return f"s{index - self.num_vars + 1}"
+    
+    def solve(self, display_steps=False):
+        
         self.initialize_tableau()
         iteration = 0
 
@@ -142,8 +159,9 @@ class SimplexSolver:
 
                 # Select entering variable (most negative coefficient in the objective row)
                 entering_var = np.argmin(self.tableau[-1, :-1])
-                file.write(f"\nEntering variable: x{entering_var + 1}, because it has the most negative coefficient {self.tableau[-1, entering_var]:.2f} in the Z-row.\n")
-                print(f"\nEntering variable: x{entering_var + 1}, because it has the most negative coefficient {self.tableau[-1, entering_var]:.2f} in the Z-row.")
+                entering_var_name = self.get_variable_name(entering_var)
+                file.write(f"\nEntering variable: {entering_var_name}, because it has the most negative coefficient {self.tableau[-1, entering_var]:.2f} in the Z-row.\n")
+                print(f"\nEntering variable: {entering_var_name}, because it has the most negative coefficient {self.tableau[-1, entering_var]:.2f} in the Z-row.")
 
                 # Check for unboundedness
                 if all(self.tableau[:-1, entering_var] <= 0):
@@ -160,8 +178,9 @@ class SimplexSolver:
                     else:
                         ratios.append(np.inf)
                 leaving_var = np.argmin(ratios)
-                file.write(f"Leaving variable: s{leaving_var + 1}, because it has the smallest ratio {ratios[leaving_var]:.2f}.\n")
-                print(f"Leaving variable: s{leaving_var + 1}, because it has the smallest ratio {ratios[leaving_var]:.2f}.")
+                leaving_var_name = self.get_variable_name(self.basis[leaving_var])
+                file.write(f"Leaving variable: {leaving_var_name}, because it has the smallest ratio {ratios[leaving_var]:.2f}.\n")
+                print(f"Leaving variable: {leaving_var_name}, because it has the smallest ratio {ratios[leaving_var]:.2f}.")
 
                 # Pivot
                 pivot_element = self.tableau[leaving_var, entering_var]
@@ -179,8 +198,8 @@ class SimplexSolver:
 
                 # Update basis
                 self.basis[leaving_var] = entering_var
-                file.write(f"Update basis: x{entering_var + 1} enters the basis, s{leaving_var + 1} leaves the basis.\n")
-                print(f"Update basis: x{entering_var + 1} enters the basis, s{leaving_var + 1} leaves the basis.")
+                file.write(f"Update basis: {entering_var_name} enters the basis, {leaving_var_name} leaves the basis.\n")
+                print(f"Update basis: {entering_var_name} enters the basis, {leaving_var_name} leaves the basis.")
 
                 # Save tableau for tracking
                 self.save_tableau(iteration)
@@ -222,19 +241,35 @@ class SimplexSolver:
         df.to_csv(f'tableau_iteration_{iteration}.csv', index=False)
 
     def get_tableau_as_string(self):
-        """
-        Return the current tableau as a formatted string.
-        """
-        headers = ['Basic'] + [f'x{i + 1}' for i in range(self.num_vars)] + [f's{i + 1}' for i in range(self.tableau.shape[1] - self.num_vars - 1)] + ['RHS']
+
+        #headers = ['Basic'] + [f'x{i + 1}' for i in range(self.num_vars)] + [f's{i + 1}' for i in range(self.tableau.shape[1] - self.num_vars - 1)] + ['RHS']
+        headers = ['Basic']
+        num_decision_vars = 0  # Count actual decision variable columns
+
+        for i in range(len(self.variable_restrictions)):
+            if self.variable_restrictions[i] == 'unrestricted':
+                headers.append(f"x{i + 1}'")
+                headers.append(f"x{i + 1}''")
+                num_decision_vars += 2  # Each unrestricted variable counts as two columns
+            else:
+                headers.append(f"x{i + 1}")
+                num_decision_vars += 1  # Normal variables count as one column
+
+        # Compute slack variables correctly
+        num_slack_vars = self.tableau.shape[1] - (num_decision_vars + 1)  # Exclude RHS column
+        headers += [f's{i + 1}' for i in range(num_slack_vars)] + ['RHS']
+    
         tableau_rows = []
         for i in range(self.num_constraints):
-            basic_var = f's{self.basis[i] - self.num_vars + 1}' if self.basis[i] >= self.num_vars else f'x{self.basis[i] + 1}'
+            basic_var = self.get_variable_name(self.basis[i])
             row = [basic_var] + list(self.tableau[i, :])
             tableau_rows.append(row)
+            
         objective_row = ['Z'] + list(self.tableau[-1, :])
         tableau_rows.append(objective_row)
-        return tabulate(tableau_rows, headers=headers, tablefmt='grid', floatfmt='.2f')
 
+        return tabulate(tableau_rows, headers, tablefmt='grid', floatfmt='.2f')
+    
     def display_tableau(self):
         """
         Display the current tableau in a fancy way using tabulate.
@@ -260,22 +295,22 @@ if __name__ == '__main__':
     # x1 >= 0, x2 >= 0, x3 is unrestricted
 
     # Objective function coefficients
-    c = [0.2, 0.15, -0.25]
+    c = [-4,30]
 
     # Constraint coefficients
     A = [
-        [0.25, 0.2, -1],  # Constraint 1
-        [1, 1, 0],        # Constraint 2
+        [-1, 5],  # Constraint 1
+        [0, 1],        # Constraint 2
     ]
 
     # Right-hand side values
-    b = [200, 900]
+    b = [30,5]
 
     # Constraint types (all are <=)
     constraint_types = ['<=', '<=']
 
     # Variable restrictions (x1 and x2 are non-negative, x3 is unrestricted)
-    variable_restrictions = ['non-negative', 'non-negative', 'unrestricted']
+    variable_restrictions = [ 'unrestricted' ,'non-negative' ]
 
     # Problem type (maximization)
     problem_type = 'max'
@@ -291,6 +326,7 @@ if __name__ == '__main__':
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])
+    
 """
 if __name__ == '__main__':
     # Given LP problem:
@@ -335,10 +371,10 @@ if __name__ == '__main__':
     results = solver.get_results()
     print("\nOptimal Solution:", results['optimal_solution'])
     print("Optimal Value:", results['optimal_value'])
-    print("Status:", results['status'])    
+    print("Status:", results['status'])"""    
 
-
-    if __name__ == '__main__':
+"""
+ if __name__ == '__main__':
     # Given LP problem:
     # Minimize z = 5x1 - 4x2 + 6x3 - 8x4
     # Subject to:
@@ -381,3 +417,38 @@ if __name__ == '__main__':
     print("Optimal Value:", results['optimal_value'])
     print("Status:", results['status'])
 """
+
+"""if __name__ == '__main__':
+    
+    c = [2,3]
+
+    A = [
+        [-1,2],  
+        [1,1], 
+        [1,3] 
+    ]
+
+    # Right-hand side values
+    b = [4,6,9]
+
+    # Constraint types (all are <=)
+    constraint_types = ['<=', '<=' , '<=']
+
+    # Variable restrictions (all are non-negative)
+    variable_restrictions = ['unrestricted' , 'unrestricted']
+
+    # Problem type (minimization)
+    problem_type = 'max'
+
+    # Initialize the solver
+    solver = SimplexSolver(c, A, b, constraint_types, variable_restrictions, problem_type)
+
+    # Solve the problem and display detailed steps
+    solver.solve(display_steps=True)
+
+    # Get and print the results
+    results = solver.get_results()
+    print("\nOptimal Solution:", results['optimal_solution'])
+    print("Optimal Value:", results['optimal_value'])
+    print("Status:", results['status'])"""
+
