@@ -155,15 +155,20 @@ class LPApp:
             solver.solve(display_steps=True)
             results = solver.get_results()
 
-            # Display results
-            messagebox.showinfo("Results", f"Optimal Solution: {results['optimal_solution']}\nOptimal Value: {results['optimal_value']}\nStatus: {results['status']}")
+            # Display results based on status
+            if results['status'].lower() == 'optimal':
+                messagebox.showinfo("Results", 
+                                f"Optimal Solution: {results['optimal_solution']}\n"
+                                f"Optimal Value: {results['optimal_value']}\n"
+                                f"Status: {results['status']}")
+            else:
+                messagebox.showinfo("Results", f"Status: {results['status']}")
 
             # Read and display steps from the file
             self.display_steps(steps_file)
 
         except Exception as e:
             messagebox.showerror("Error", str(e))
-
     def display_steps(self, steps_file):
         try:
             with open(steps_file, "r") as f:
@@ -311,8 +316,14 @@ class LPApp:
             solver.solve(display_steps=True)
             results = solver.get_results()
 
-            # Display results
-            messagebox.showinfo("Results", f"Optimal Solution: {results['optimal_solution']}\nOptimal Value: {results['optimal_value']}\nStatus: {results['status']}")
+            # Display results based on status
+            if results['status'].lower() == 'optimal':
+                messagebox.showinfo("Results", 
+                                f"Optimal Solution: {results['optimal_solution']}\n"
+                                f"Optimal Value: {results['optimal_value']}\n"
+                                f"Status: {results['status']}")
+            else:
+                messagebox.showinfo("Results", f"Status: {results['status']}")
 
             # Read and display steps from the file
             self.display_steps("Goal.txt")
