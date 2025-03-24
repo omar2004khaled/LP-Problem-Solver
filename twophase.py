@@ -81,12 +81,12 @@ class TwoPhaseSimplexSolver:
 
         self.solve_simplex(phase='Phase 1', file=file)
 
-        # Check if any artificial variables remain in the basis
-        for i in range(self.num_slack + self.num_artificial):
-            if self.basis[i] >= artificial_start and self.basis[i] <= artificial_end:
-                if self.tableau[i, -1] != 0:
-                    return False  # No feasible solution
 
+        for i in range(len(self.basis)):  # Iterate over all basis elements
+         if artificial_start <= self.basis[i] < artificial_end:
+          if self.tableau[i, -1] != 0:  # Check if the RHS is nonzero
+            return False
+        
         self.remove_artificial_variables()
         self.update_z_row_for_phase2(file)
         return True
@@ -126,7 +126,8 @@ class TwoPhaseSimplexSolver:
 
     def solve_simplex(self, phase, file):
         iteration = 0
-
+        print(f"\nIteration {iteration}:")
+        self.display_tableau()   
         if phase == 'Phase 1':
             problemtype = 'min'
         else:
@@ -289,7 +290,7 @@ if __name__ == '__main__':
     c = [1, 2, 1]
     A = [[1, 1, 1], [2, -5, 1]]
     b = [7, 10]
-    constraint_types = ['=', '>=']
+    constraint_types = ['>=', '=']
     variable_restrictions = ['non-negative', 'non-negative', 'non-negative']
     problem_type = 'min'
 
