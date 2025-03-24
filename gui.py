@@ -9,7 +9,9 @@ from Goal import GoalSolver  # Import GoalSolver from Goal.py
 import numpy as np
 import pandas as pd
 from tabulate import tabulate
-
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
+from graphical import LPPlotter  # Import LPPlotter from graphical.py
 class LPApp:
     def __init__(self, root):
         self.root = root
@@ -32,7 +34,8 @@ class LPApp:
         # Page 2: Goal Programming
         self.page2 = ttk.Frame(self.notebook)
         self.notebook.add(self.page2, text="Goal Programming")
-
+        self.page3 = ttk.Frame(self.notebook)
+        self.notebook.add(self.page3, text="Graphical Solution")
         # Method selection
         self.method_var = tk.StringVar(value="simplex")
         self.problem_type_var = tk.StringVar(value="max")
@@ -42,7 +45,7 @@ class LPApp:
 
         self.create_page1_widgets()
         self.create_page2_widgets()
-
+        self.create_page3_widgets()
     def create_page1_widgets(self):
         # Input section
         input_frame = ttk.Labelframe(self.page1, text="Input Parameters", padding=10)
@@ -330,6 +333,169 @@ class LPApp:
 
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+
+    def create_page3_widgets(self):
+        """Create widgets for the graphical solution page"""
+        # Input frame
+        input_frame = ttk.Labelframe(self.page3, text="Problem Input", padding=10)
+        input_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        # Problem type selection
+        ttk.Label(input_frame, text="Problem Type:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        self.graph_problem_type = tk.StringVar(value="max")
+        ttk.Radiobutton(input_frame, text="Maximize", variable=self.graph_problem_type, value="max").grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        ttk.Radiobutton(input_frame, text="Minimize", variable=self.graph_problem_type, value="min").grid(row=0, column=2, padx=5, pady=5, sticky="w")
+
+        # Objective function coefficients
+        ttk.Label(input_frame, text="Objective Coefficients:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        self.obj_x1 = ttk.Entry(input_frame, width=8)
+        self.obj_x1.grid(row=1, column=1, padx=5, pady=5)
+        ttk.Label(input_frame, text="x₁ +").grid(row=1, column=2, padx=0, pady=5)
+        self.obj_x2 = ttk.Entry(input_frame, width=8)
+        self.obj_x2.grid(row=1, column=3, padx=5, pady=5)
+        ttk.Label(input_frame, text="x₂").grid(row=1, column=4, padx=0, pady=5)
+
+        # Constraints frame
+        constraints_frame = ttk.Labelframe(self.page3, text="Constraints", padding=10)
+        constraints_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        # Constraint entries (we'll start with 2 constraints)
+        self.constraint_entries = []
+        for i in range(2):
+            frame = ttk.Frame(constraints_frame)
+            frame.pack(fill=tk.X, pady=5)
+            
+            entries = []
+            # x1 coefficient
+            entry = ttk.Entry(frame, width=5)
+            entry.pack(side=tk.LEFT, padx=2)
+            entries.append(entry)
+            
+            ttk.Label(frame, text="x₁ +").pack(side=tk.LEFT, padx=2)
+            
+            # x2 coefficient
+            entry = ttk.Entry(frame, width=5)
+            entry.pack(side=tk.LEFT, padx=2)
+            entries.append(entry)
+            
+            ttk.Label(frame, text="x₂").pack(side=tk.LEFT, padx=2)
+            
+            # Constraint type
+            constr_type = ttk.Combobox(frame, values=["≤", "≥", "="], width=3)
+            constr_type.current(0)
+            constr_type.pack(side=tk.LEFT, padx=2)
+            
+            # RHS
+            ttk.Label(frame, text="").pack(side=tk.LEFT, padx=2)
+            entry = ttk.Entry(frame, width=5)
+            entry.pack(side=tk.LEFT, padx=2)
+            entries.append(entry)
+            
+            self.constraint_entries.append((entries, constr_type))
+
+        # Button to add more constraints
+        ttk.Button(constraints_frame, text="Add Constraint", command=self.add_constraint_field).pack(pady=5)
+
+        # Plot button
+        ttk.Button(self.page3, text="Plot Solution", command=self.plot_solution, bootstyle="primary").pack(pady=10)
+
+        # Canvas for matplotlib figure
+        self.graph_frame = ttk.Frame(self.page3)
+        self.graph_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Initialize figure
+        self.figure = plt.Figure(figsize=(6, 4), dpi=100)
+        self.ax = self.figure.add_subplot(111)
+        self.canvas = FigureCanvasTkAgg(self.figure, self.graph_frame)
+        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+    def add_constraint_field(self):
+        """Add another constraint input field"""
+        frame = ttk.Frame(self.page3.winfo_children()[1])  # Get constraints_frame
+        frame.pack(fill=tk.X, pady=5)
+        
+        entries = []
+        # x1 coefficient
+        entry = ttk.Entry(frame, width=5)
+        entry.pack(side=tk.LEFT, padx=2)
+        entries.append(entry)
+        
+        ttk.Label(frame, text="x₁ +").pack(side=tk.LEFT, padx=2)
+        
+        # x2 coefficient
+        entry = ttk.Entry(frame, width=5)
+        entry.pack(side=tk.LEFT, padx=2)
+        entries.append(entry)
+        
+        ttk.Label(frame, text="x₂").pack(side=tk.LEFT, padx=2)
+        
+        # Constraint type
+        constr_type = ttk.Combobox(frame, values=["≤", "≥", "="], width=3)
+        constr_type.current(0)
+        constr_type.pack(side=tk.LEFT, padx=2)
+        
+        # RHS
+        ttk.Label(frame, text="").pack(side=tk.LEFT, padx=2)
+        entry = ttk.Entry(frame, width=5)
+        entry.pack(side=tk.LEFT, padx=2)
+        entries.append(entry)
+        
+        self.constraint_entries.append((entries, constr_type))
+
+    def plot_solution(self):
+        """Plot the graphical solution"""
+        try:
+            # Get objective function coefficients
+            c = [float(self.obj_x1.get()), float(self.obj_x2.get())]
+            
+            # Get constraints
+            A = []
+            b = []
+            constraint_types = []
+            
+            for entries, constr_type in self.constraint_entries:
+                try:
+                    a1 = float(entries[0].get())
+                    a2 = float(entries[1].get())
+                    rhs = float(entries[2].get())
+                    
+                    A.append([a1, a2])
+                    b.append(rhs)
+                    
+                    # Convert constraint type symbol to standard form
+                    ct = constr_type.get()
+                    if ct == "≤":
+                        constraint_types.append("<=")
+                    elif ct == "≥":
+                        constraint_types.append(">=")
+                    else:
+                        constraint_types.append("=")
+                except ValueError:
+                    continue  # Skip incomplete constraints
+            
+            if not A:
+                raise ValueError("Please enter at least one valid constraint")
+            
+            # Get problem parameters
+            variable_restrictions = ['non-negative', 'non-negative']
+            problem_type = self.graph_problem_type.get()
+            
+            # Clear previous plot
+            self.ax.clear()
+            
+            # Create and plot the LP problem
+            plotter = LPPlotter(c, A, b, constraint_types, variable_restrictions, problem_type)
+            plotter.ax = self.ax  # Use our axis
+            plotter.plot()
+            
+            # Redraw canvas
+            self.canvas.draw()
+            
+        except ValueError as e:
+            messagebox.showerror("Input Error", f"Invalid input: {str(e)}")
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
 if __name__ == "__main__":
     root = ttk.Window(themename="cosmo")  # Use a modern theme
